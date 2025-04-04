@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Create Workout</title>
+  <style>
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      max-width: 600px;
+    }
+    .checkbox-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .checkbox-group label {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+    }
+    table {
+      margin-top: 2rem;
+      border-collapse: collapse;
+      width: 100%;
+    }
+    table, th, td {
+      border: 1px solid #999;
+    }
+    th, td {
+      padding: 0.5rem;
+      text-align: left;
+    }
+    th a {
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>Create a New Workout</h1>
+
+  <form action="/workouts" method="POST">
+    <label>Workout Name:
+      <input type="text" name="name" required>
+	  <label for="category">Category:</label>
+<select id="category" name="category" required>
+  <option value="">-- Select Category --</option>
+  <option value="full_body">Full Body</option>
+  <option value="upper_body">Upper Body</option>
+  <option value="lower_body">Lower Body</option>
+  <option value="abs">Abs</option>
+  <option value="yoga">Yoga</option>
+</select>
+
+    </label>
+
+<fieldset>
+  <legend>Equipment</legend>
+  <div class="checkbox-group">
+    <% ['barbell', 'kettlebell', 'dumbbell', 'resistance_band_long', 'resistance_band_short', 'blocks', 'mat', 'bodyweight'].forEach(equip => { %>
+      <label>
+        <input type="checkbox" name="equipment" value="<%= equip %>"> <%= equip.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) %>
+      </label>
+    <% }) %>
+  </div>
+</fieldset>
+
+<fieldset>
+  <legend>Muscle Groups</legend>
+  <div class="checkbox-group">
+    <% const muscles = ['Abductors', 'Abs', 'Adductors', 'Biceps', 'Calves', 'Chest', 'Forearms', 'Glutes', 'Hamstring', 'Hip Flexors', 'Lats', 'Lower Back', 'Obliques', 'Quads', 'Shoulders', 'Traps', 'Triceps', 'Upper Back']; %>
+    <% muscles.forEach(muscle => { %>
+      <label>
+        <input type="checkbox" name="muscle_group" value="<%= muscle.toLowerCase().replace(/ /g, '_') %>"> <%= muscle %>
+      </label>
+    <% }) %>
+  </div>
+</fieldset>
+
+<fieldset>
+  <legend>Exercise Type</legend>
+  <div class="checkbox-group">
+    <% ['strength', 'cardio', 'stretch', 'warm up'].forEach(type => { %>
+      <label>
+        <input type="checkbox" name="exercise_type" value="<%= type %>"> <%= type.charAt(0).toUpperCase() + type.slice(1) %>
+      </label>
+    <% }) %>
+  </div>
+</fieldset>
+
+<fieldset>
+  <legend>Position</legend>
+  <div class="checkbox-group">
+    <% ['standing', 'seated', 'laying', 'bench'].forEach(pos => { %>
+      <label>
+        <input type="checkbox" name="position" value="<%= pos %>"> <%= pos.charAt(0).toUpperCase() + pos.slice(1) %>
+      </label>
+    <% }) %>
+  </div>
+</fieldset>
+
+    <button type="submit">Create Workout</button>
+  </form
+
+    <div style="text-align: center; margin-top: 30px;">
+  <a href="/workouts" style="
+    display: inline-block;
+    padding: 12px 24px;
+    background-color: #28a745;
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+    border-radius: 6px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transition: background-color 0.2s ease;
+  " onmouseover="this.style.backgroundColor='#218838'" onmouseout="this.style.backgroundColor='#28a745'">
+    ⬅️ Back to Workouts
+  </a>
+</div>
+</body>
+</html>

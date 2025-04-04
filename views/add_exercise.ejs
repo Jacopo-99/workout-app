@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Add Exercise</title>
+  <style>
+    form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: flex-start;
+      max-width: 800px;
+      margin: auto;
+    }
+    form label, form fieldset {
+      display: flex;
+      flex-direction: column;
+    }
+    .checkbox-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .checkbox-group label {
+      flex-direction: row;
+      align-items: center;
+    }
+    button {
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Add New Exercise</h1>
+
+  <form action="/exercises" method="POST" enctype="multipart/form-data">
+    <label>Name:
+      <input type="text" name="name" required>
+    </label>
+    
+    <label>Image:
+      <input type="file" name="images" multiple>
+    </label>
+
+    <label>Description:
+      <textarea name="description" rows="4" cols="50" placeholder="Enter a description."></textarea>
+    </label>
+
+    <fieldset>
+      <legend>Equipment</legend>
+      <div class="checkbox-group">
+        <% const equipment = [
+          'Barbell', 'Kettlebell', 'Dumbbell', 'Resistance band (long)',
+          'Resistance band (short)', 'Blocks', 'Mat', 'Bodyweight'
+        ]; %>
+        <% equipment.forEach(eq => { %>
+          <label>
+            <input type="checkbox" name="type_of_exercise" value="<%= eq.toLowerCase().replace(/ /g, '_').replace(/[()]/g, '') %>"> <%= eq %>
+          </label>
+        <% }); %>
+      </div>
+    </fieldset>
+
+    <label>Complexity:
+      <select name="complexity">
+        <option value="simple">Simple</option>
+        <option value="complex">Complex</option>
+      </select>
+    </label>
+
+<fieldset>
+  <legend>Exercise Type</legend>
+  <div class="checkbox-group">
+    <% ['Strength', 'Cardio', 'Stretch', 'Warm Up'].forEach(type => { %>
+      <label>
+        <input type="checkbox" name="exercise_type" value="<%= type.toLowerCase() %>"> <%= type %>
+      </label>
+    <% }) %>
+  </div>
+</fieldset>
+
+<fieldset>
+  <legend>Position</legend>
+  <div class="checkbox-group">
+    <% ['Standing', 'Seated', 'Laying', 'Bench'].forEach(pos => { %>
+      <label>
+        <input type="checkbox" name="position" value="<%= pos.toLowerCase() %>"> <%= pos %>
+      </label>
+    <% }) %>
+  </div>
+</fieldset>
+
+    <fieldset>
+      <legend>Muscle Groups</legend>
+      <div class="checkbox-group">
+        <% const groups = [
+          'Abductors', 'Abs', 'Adductors', 'Biceps', 'Calves', 'Chest', 'Forearms',
+          'Glutes', 'Hamstring', 'Hip Flexors', 'Lats', 'Lower Back',
+          'Obliques', 'Quads', 'Shoulders', 'Traps', 'Triceps', 'Upper Back'
+        ]; %>
+        <% groups.forEach(group => { %>
+          <label>
+            <input type="checkbox" name="muscle_group" value="<%= group.toLowerCase().replace(/ /g, '_') %>"> <%= group %>
+          </label>
+        <% }); %>
+      </div>
+    </fieldset>
+
+    <button type="submit">Add Exercise</button>
+  </form>
+
+  <div style="text-align: center; margin-top: 30px;">
+  <a href="/exercises" style="
+    display: inline-block;
+    padding: 12px 24px;
+    background-color: #28a745;
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+    border-radius: 6px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transition: background-color 0.2s ease;
+  " onmouseover="this.style.backgroundColor='#218838'" onmouseout="this.style.backgroundColor='#28a745'">
+    ⬅️ Back to Exercises
+  </a>
+</div>
+</body>
+</html>

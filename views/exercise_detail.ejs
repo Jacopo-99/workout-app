@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= exercise.name %> - Details</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 1100px;
+      margin: 2rem auto;
+    }
+    h1 {
+      margin-bottom: 0.5rem;
+    }
+    .info {
+      margin-bottom: 1rem;
+    }
+    .info strong {
+      display: inline-block;
+      width: 150px;
+    }
+    .description {
+      background: #f7f7f7;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-top: 1rem;
+    }
+    .images {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .image-wrapper {
+      position: relative;
+      flex: 1 1 300px;
+      max-width: 300px;
+    }
+    .images img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 6px;
+    }
+    .delete-img {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background: red;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      padding: 0.2rem 0.4rem;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    .actions {
+      margin-top: 1.5rem;
+    }
+    .actions form {
+      display: inline;
+    }
+    .actions button {
+      margin-right: 10px;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 4px;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+    .actions button.delete {
+      background-color: #dc3545;
+    }
+    .back-link {
+      display: inline-block;
+      margin-top: 2rem;
+      text-decoration: none;
+      color: #0077cc;
+    }
+  </style>
+</head>
+<body>
+  <h1><%= exercise.name %></h1>
+
+  <% if (exercise.images && exercise.images.length > 0) { %>
+    <div class="images">
+      <% exercise.images.forEach((src, i) => { %>
+        <div class="image-wrapper">
+          <img src="<%= src %>" alt="<%= exercise.name %>">
+          <form method="POST" action="/exercises/<%= exercise.id %>/image?_method=DELETE">
+  <input type="hidden" name="src" value="<%= src %>">
+  <button class="delete-img" type="submit">X</button>
+</form>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+
+  <div class="info">
+    <% 
+      const capitalize = s => s.charAt(0).toUpperCase() + s.slice(1);
+      const formatList = arr => (Array.isArray(arr) ? arr : [arr])
+        .map(e => typeof e === 'string' ? e.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : '')
+        .join(', ');
+    %>
+
+    <p><strong>Equipment:</strong> <%= formatList(exercise.equipment) %></p>
+    <p><strong>Complexity:</strong> <%= capitalize(exercise.complexity) %></p>
+    <p><strong>Type:</strong> <%= formatList(exercise.exercise_type) %></p>
+    <p><strong>Position:</strong> <%= formatList(exercise.position) %></p>
+    <p><strong>Muscle Groups:</strong> <%= formatList(exercise.muscle_group) %></p>
+  </div>
+
+  <% if (exercise.description) { %>
+    <div class="description">
+      <h3>Description</h3>
+      <p><%= exercise.description %></p>
+    </div>
+  <% } %>
+
+  <div class="actions">
+    <form action="/exercises/<%= exercise.id %>/edit" method="GET">
+      <button type="submit">Edit</button>
+    </form>
+    <form action="/exercises/<%= exercise.id %>?_method=DELETE" method="POST">
+      <button type="submit" class="delete">Delete</button>
+    </form>
+  </div>
+
+<% if (Array.isArray(exercise.muscle_group) && exercise.muscle_group.length > 0) { %>
+  <% const groupSlug = exercise.muscle_group[0].toLowerCase().replace(/ /g, '_'); %>
+  <div style="text-align: center; margin-top: 30px;">
+    <a href="/exercises/group/<%= groupSlug %>" style="
+      display: inline-block;
+      padding: 12px 24px;
+      background-color: #28a745;
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      border-radius: 6px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      transition: background-color 0.2s ease;
+    " onmouseover="this.style.backgroundColor='#218838'" onmouseout="this.style.backgroundColor='#28a745'">
+      🔁 View more <%= exercise.muscle_group[0] %> exercises
+    </a>
+  </div>
+<% } else { %>
+  <div style="text-align: center; margin-top: 30px;">
+    <a href="/exercises" style="
+      display: inline-block;
+      padding: 12px 24px;
+      background-color: #28a745;
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      border-radius: 6px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      transition: background-color 0.2s ease;
+    " onmouseover="this.style.backgroundColor='#218838'" onmouseout="this.style.backgroundColor='#28a745'">
+      ⬅️ Back to Exercises
+    </a>
+  </div>
+<% } %>
+
+
+
+
+</body>
+</html>

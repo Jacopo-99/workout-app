@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= workout.name %> - Exercises</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1000px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      vertical-align: top;
+      text-align: left;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+
+    th {
+      background-color: #f0f0f0;
+    }
+
+    a.back-link {
+      display: inline-block;
+      margin-top: 20px;
+      text-decoration: none;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <h1><%= workout.name %></h1>
+
+  <% function formatList(arr) {
+    return JSON.parse(arr || '[]')
+      .map(e => e.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()))
+      .join(', ');
+  } %>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Equipment</th>
+        <th>Muscle Group</th>
+        <th>Type</th>
+        <th>Position</th>
+        <th>Complexity</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% exercises.forEach(ex => { %>
+        <tr>
+          <td><%= ex.name %></td>
+          <td><%= formatList(ex.equipment) %></td>
+          <td><%= formatList(ex.muscle_group) %></td>
+          <td><%= formatList(ex.exercise_type) %></td>
+          <td><%= formatList(ex.position) %></td>
+          <td><%= ex.complexity %></td>
+          <td><%= ex.description %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+
+  </div>
+    <div style="text-align: center; margin-top: 30px;">
+  <a href="/workouts" style="
+    display: inline-block;
+    padding: 12px 24px;
+    background-color: #28a745;
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+    border-radius: 6px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transition: background-color 0.2s ease;
+  " onmouseover="this.style.backgroundColor='#218838'" onmouseout="this.style.backgroundColor='#28a745'">
+    ⬅️ Back to Workouts
+  </a>
+</div>
+</body>
+</html>

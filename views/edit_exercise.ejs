@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Edit Exercise</title>
+  <style>
+    form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: flex-start;
+      max-width: 800px;
+      margin: auto;
+    }
+    form label, form fieldset {
+      display: flex;
+      flex-direction: column;
+    }
+    .checkbox-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .checkbox-group label {
+      flex-direction: row;
+      align-items: center;
+    }
+    button {
+      margin-top: 1rem;
+    }
+    img.preview {
+      max-width: 100%;
+      height: 200px;
+      object-fit: cover;
+      margin-bottom: 1rem;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Edit Exercise</h1>
+
+  <% if (exercise.image) {
+    let images = [];
+    try {
+      images = JSON.parse(exercise.image);
+    } catch {
+      images = [exercise.image];
+    }
+  %>
+    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+      <% images.forEach(img => { %>
+        <img class="preview" src="<%= img %>" alt="<%= exercise.name %>">
+      <% }) %>
+    </div>
+  <% } %>
+
+  <form action="/exercises/<%= exercise.id %>?_method=PUT" method="POST" enctype="multipart/form-data">
+    <label>Name:
+      <input type="text" name="name" value="<%= exercise.name %>" required>
+    </label>
+
+    <label>Description:
+      <textarea name="description" rows="4" cols="50"><%= exercise.description || '' %></textarea>
+    </label>
+
+    <label>Change Image:
+      <input type="file" name="images" multiple>
+    </label>
+
+    <fieldset>
+      <legend>Equipment</legend>
+      <div class="checkbox-group">
+        <% const equipment = [
+          'Barbell', 'Kettlebell', 'Dumbbell', 'Resistance band (long)',
+          'Resistance band (short)', 'Blocks', 'Mat', 'Bodyweight'
+        ]; %>
+        <% let selectedEquip = []; try { selectedEquip = JSON.parse(exercise.type_of_exercise); } catch { selectedEquip = [exercise.type_of_exercise]; } %>
+        <% equipment.forEach(eq => {
+          const value = eq.toLowerCase().replace(/ /g, '_').replace(/[()]/g, '');
+        %>
+          <label>
+            <input type="checkbox" name="type_of_exercise" value="<%= value %>" <%= selectedEquip.includes(value) ? 'checked' : '' %>> <%= eq %>
+          </label>
+        <% }); %>
+      </div>
+    </fieldset>
+
+    <label>Complexity:
+      <select name="complexity">
+        <option value="simple" <%= exercise.complexity === 'simple' ? 'selected' : '' %>>Simple</option>
+        <option value="complex" <%= exercise.complexity === 'complex' ? 'selected' : '' %>>Complex</option>
+      </select>
+    </label>
+
+    <fieldset>
+      <legend>Exercise Type</legend>
+      <div class="checkbox-group">
+        <% let selectedET = []; try { selectedET = JSON.parse(exercise.exercise_type); } catch { selectedET = [exercise.exercise_type]; } %>
+        <% ['strength', 'cardio', 'stretch', 'warm up'].forEach(type => { %>
+          <label>
+            <input type="checkbox" name="exercise_type" value="<%= type %>" <%= selectedET.includes(type) ? 'checked' : '' %>> <%= type.charAt(0).toUpperCase() + type.slice(1) %>
+          </label>
+        <% }); %>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Position</legend>
+      <div class="checkbox-group">
+        <% let selectedPos = []; try { selectedPos = JSON.parse(exercise.position); } catch { selectedPos = [exercise.position]; } %>
+        <% ['standing', 'seated', 'laying', 'bench'].forEach(pos => { %>
+          <label>
+            <input type="checkbox" name="position" value="<%= pos %>" <%= selectedPos.includes(pos) ? 'checked' : '' %>> <%= pos.charAt(0).toUpperCase() + pos.slice(1) %>
+          </label>
+        <% }); %>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Muscle Groups</legend>
+      <div class="checkbox-group">
+        <% const groups = [
+          'Abductors', 'Abs', 'Adductors', 'Biceps', 'Calves', 'Chest', 'Forearms',
+          'Glutes', 'Hamstring', 'Hip Flexors', 'Lats', 'Lower Back',
+          'Obliques', 'Quads', 'Shoulders', 'Traps', 'Triceps', 'Upper Back'
+        ]; %>
+        <% let selectedMuscles = []; try { selectedMuscles = JSON.parse(exercise.muscle_group); } catch { selectedMuscles = [exercise.muscle_group]; } %>
+        <% groups.forEach(group => {
+          const value = group.toLowerCase().replace(/ /g, '_');
+        %>
+          <label>
+            <input type="checkbox" name="muscle_group" value="<%= value %>" <%= selectedMuscles.includes(value) ? 'checked' : '' %>> <%= group %>
+          </label>
+        <% }); %>
+      </div>
+    </fieldset>
+
+    <button type="submit">Save Changes</button>
+  </form>
+
+  <div style="text-align: center; margin-top: 30px;">
+  <a href="/exercises" style="
+    display: inline-block;
+    padding: 12px 24px;
+    background-color: #28a745;
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+    border-radius: 6px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transition: background-color 0.2s ease;
+  " onmouseover="this.style.backgroundColor='#218838'" onmouseout="this.style.backgroundColor='#28a745'">
+    ⬅️ Back to Exercises
+  </a>
+</div>
+</body>
+</html>

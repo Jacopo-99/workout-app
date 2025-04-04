@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>
+    <% 
+      const formattedTitle = category
+        .replace(/_/g, ' ')
+        .split(' ')
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' '); 
+    %>
+    <%= formattedTitle %>
+  </title>
+  <style>
+    table {
+      border-collapse: collapse;
+      width: 95%;
+      margin: auto;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th button {
+      background: none;
+      border: none;
+      color: blue;
+      cursor: pointer;
+      font-weight: bold;
+      text-decoration: underline;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    a {
+      color: #333;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <h1><%= formattedTitle %></h1>
+
+  <% function format(str) {
+      return str
+        .replace(/_/g, ' ')
+        .split(' ')
+        .map(s => s.charAt(0).toUpperCase() + s.slice(1))
+        .join(' ');
+  } %>
+
+  <table>
+    <thead>
+      <tr>
+        <% const cols = [
+          { key: 'name', label: 'Name' },
+          { key: 'category', label: 'Category' },
+          { key: 'equipment', label: 'Equipment' },
+          { key: 'muscle_group', label: 'Muscles' },
+          { key: 'exercise_type', label: 'Type' },
+          { key: 'position', label: 'Position' }
+        ]; %>
+
+        <% cols.forEach(col => { %>
+          <th>
+            <form method="GET">
+              <input type="hidden" name="sort" value="<%= col.key %>">
+              <input type="hidden" name="order" value="<%= sort === col.key && order === 'ASC' ? 'desc' : 'asc' %>">
+              <button type="submit">
+                <%= col.label %> 
+                <%= sort === col.key ? (order === 'ASC' ? '⬆️' : '⬇️') : '' %>
+              </button>
+            </form>
+          </th>
+        <% }); %>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% workouts.forEach(w => { %>
+        <tr>
+          <td>
+            <a href="/workouts/<%= w.id %>"><strong><%= w.name %></strong></a>
+          </td>
+          <td><%= format(w.category) %></td>
+          <td><%= JSON.parse(w.equipment || '[]').map(format).join(', ') %></td>
+          <td><%= JSON.parse(w.muscle_group || '[]').map(format).join(', ') %></td>
+          <td><%= JSON.parse(w.exercise_type || '[]').map(format).join(', ') %></td>
+          <td><%= JSON.parse(w.position || '[]').map(format).join(', ') %></td>
+          <td class="action-buttons">
+            <a href="/workouts/<%= w.id %>/edit">✏️</a>
+            <form action="/workouts/<%= w.id %>?_method=DELETE" method="POST" onsubmit="return confirm('Are you sure?')">
+              <button type="submit">🗑️</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+
+  </div>
+    <div style="text-align: center; margin-top: 30px;">
+  <a href="/workouts" style="
+    display: inline-block;
+    padding: 12px 24px;
+    background-color: #28a745;
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+    border-radius: 6px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transition: background-color 0.2s ease;
+  " onmouseover="this.style.backgroundColor='#218838'" onmouseout="this.style.backgroundColor='#28a745'">
+    ⬅️ Back to Workouts
+  </a>
+</div>
+</body>
+</html>
