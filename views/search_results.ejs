@@ -7,86 +7,74 @@
     .exercise-grid {
       display: flex;
       flex-wrap: wrap;
-      gap: 20px;
       justify-content: center;
+      gap: 20px;
       padding: 20px;
     }
 
     .exercise-card {
       width: 200px;
-      border: 1px solid #ccc;
-      padding: 15px;
+      border: 1px solid #ddd;
       border-radius: 8px;
+      overflow: hidden;
       text-align: center;
-      position: relative;
+      text-decoration: none;
+      color: inherit;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      transition: transform 0.2s;
+    }
+
+    .exercise-card:hover {
+      transform: scale(1.05);
     }
 
     .exercise-card img {
       width: 100%;
-      height: 150px;
+      height: 160px;
       object-fit: cover;
     }
 
-    .add-form {
-      margin-top: 10px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 5px;
+    .exercise-card h3 {
+      font-size: 1rem;
+      margin: 10px 0;
+      padding: 0 10px;
     }
 
-    .add-form select {
-      width: 100%;
+    .add-btn {
+      display: inline-block;
+      background-color: #28a745;
+      color: white;
+      padding: 10px 20px;
+      font-size: 1rem;
+      border-radius: 6px;
+      text-decoration: none;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
     }
 
-    .add-form button {
-      font-size: 16px;
-      padding: 2px 6px;
-      cursor: pointer;
+    .add-btn:hover {
+      background-color: #218838;
     }
   </style>
 </head>
 <body>
   <h1 style="text-align:center;">Search Results</h1>
 
-  <div class="exercise-grid">
-    <% exercises.forEach(ex => { %>
-      <div class="exercise-card">
-        <% if (ex.thumbnail && ex.thumbnail !== 'null') { %>
-          <a href="/exercises/<%= ex.id %>">
-            <img src="<%= ex.thumbnail %>" alt="<%= ex.name %>">
-          </a>
-        <% } %>
-        <strong><%= ex.name %></strong>
-        <p><%= ex.description %></p>
+  <div style="text-align: center;">
+    <a href="/exercises/add" class="add-btn">➕ Add Exercise</a>
+  </div>
 
-        <form class="add-form" action="/workouts/add-exercise" method="POST">
-          <input type="hidden" name="exercise_id" value="<%= ex.id %>">
-          <select name="workout_id" required>
-            <% workouts.forEach(w => { %>
-              <option value="<%= w.id %>"><%= w.name %></option>
-            <% }) %>
-          </select>
-          <button type="submit" title="Add to Workout">➕</button>
-        </form>
-      </div>
+  <div class="exercise-grid">
+    <% exercises.forEach(exercise => { %>
+      <a class="exercise-card" href="/exercises/<%= exercise.id %>">
+        <% if (exercise.thumbnail) { %>
+          <img src="<%= exercise.thumbnail %>" alt="<%= exercise.name %>">
+        <% } else { %>
+          <img src="/images/placeholder.jpg" alt="No Image">
+        <% } %>
+        <h3><%= exercise.name %></h3>
+      </a>
     <% }) %>
   </div>
-    <div style="text-align: center; margin-top: 30px;">
-  <a href="/exercises" style="
-    display: inline-block;
-    padding: 12px 24px;
-    background-color: #28a745;
-    color: white;
-    text-decoration: none;
-    font-weight: bold;
-    border-radius: 6px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    transition: background-color 0.2s ease;
-  " onmouseover="this.style.backgroundColor='#218838'" onmouseout="this.style.backgroundColor='#28a745'">
-    ⬅️ Back to Exercise
-  </a>
-</div>
 </body>
 </html>
-

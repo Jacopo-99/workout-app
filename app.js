@@ -6,7 +6,7 @@ const multer = require('multer');
 const fs = require('fs');
 
 const app = express();
-const db = new sqlite3.Database('./exercise.db');
+const db = require('./db');
 
 // Middleware
 app.use(express.urlencoded({ extended: true }));
@@ -92,7 +92,6 @@ app.get('/exercises/search', (req, res) => {
       return res.send('Esercizio non trovato.');
     }
 
-    // 👇 Aggiunge manualmente la thumbnail per ogni esercizio
     const exercises = rows.map(ex => {
       try {
         const images = JSON.parse(ex.images || '[]');
@@ -102,11 +101,7 @@ app.get('/exercises/search', (req, res) => {
       }
     });
 
-    res.render('group_gallery', {
-      exercises,
-      groupName: 'Search Results',
-      workouts: [] // se non usi i workout puoi toglierlo
-    });
+    res.render('search_results', { exercises });
   });
 });
 
