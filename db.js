@@ -5,24 +5,6 @@ require('dotenv').config();
 let db;
 
 if (process.env.SUPABASE === 'true') {
-  const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
-  });
-
-  db = {
-    all: (text, params, callback) => {
-      pool.query(text, params)
-        .then(res => callback(null, res.rows))
-        .catch(err => callback(err));
-    },
-    get: (text, params, callback) => {const { Pool } = require('pg');
-const sqlite3 = require('sqlite3');
-require('dotenv').config();
-
-let db;
-
-if (process.env.SUPABASE === 'true') {
   const dbUrl = process.env.DATABASE_URL;
 
   if (!dbUrl) {
