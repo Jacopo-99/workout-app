@@ -1,10 +1,4 @@
-# Evita di caricare le dipendenze (generate automaticamente da npm install)
-node_modules
-
-# Evita di caricare file temporanei del sistema operativo o editor
-.DS_Store
-Thumbs.db
-*.log
-
-# Puoi lasciare queste cartelle visibili nel repo
-# Perché vuoi includere sia il DB che le immagini
+node_modules/
+uploads/
+*.db
+.env
