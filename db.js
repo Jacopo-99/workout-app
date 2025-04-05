@@ -12,6 +12,8 @@ if (process.env.SUPABASE === 'true') {
     process.exit(1);
   }
 
+console.log("✅ DATABASE_URL:", dbUrl);
+
   const pool = new Pool({
     connectionString: dbUrl,
     ssl: { rejectUnauthorized: false },
