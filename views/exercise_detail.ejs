@@ -105,7 +105,11 @@
         .join(', ');
     %>
 
-    <p><strong>Equipment:</strong> <%= formatList(exercise.equipment) %></p>
+    <% if (exercise.equipment && formatList(exercise.equipment)) { %>
+  <p><strong>Equipment:</strong> <%= formatList(exercise.equipment) %></p>
+<% } else { %>
+  <p><strong>Equipment:</strong> Not specified</p>
+<% } %>
     <p><strong>Complexity:</strong> <%= capitalize(exercise.complexity) %></p>
     <p><strong>Type:</strong> <%= formatList(exercise.exercise_type) %></p>
     <p><strong>Position:</strong> <%= formatList(exercise.position) %></p>
