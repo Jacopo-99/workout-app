@@ -105,26 +105,11 @@
         .join(', ');
     %>
 
-<%
-  let equipmentList = [];
-
-  try {
-    equipmentList = Array.isArray(exercise.equipment)
-      ? exercise.equipment
-      : JSON.parse(exercise.equipment);
-  } catch (e) {
-    equipmentList = [];
-  }
-
-  equipmentList = equipmentList.map(e =>
-    typeof e === 'string'
-      ? e.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-      : ''
-  );
-%>
-
-<p><strong>Equipment:</strong> <%= equipmentList.length ? equipmentList.join(', ') : 'Not specified' %></p>
-
+    <% if (exercise.equipment && formatList(exercise.equipment)) { %>
+  <p><strong>Equipment:</strong> <%= formatList(exercise.equipment) %></p>
+<% } else { %>
+  <p><strong>Equipment:</strong> Not specified</p>
+<% } %>
     <p><strong>Complexity:</strong> <%= capitalize(exercise.complexity) %></p>
     <p><strong>Type:</strong> <%= formatList(exercise.exercise_type) %></p>
     <p><strong>Position:</strong> <%= formatList(exercise.position) %></p>
