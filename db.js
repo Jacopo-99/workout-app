@@ -12,11 +12,13 @@ if (process.env.SUPABASE === 'true') {
     process.exit(1);
   }
 
-console.log("✅ DATABASE_URL:", dbUrl);
+  console.log("✅ DATABASE_URL:", dbUrl);
 
   const pool = new Pool({
     connectionString: dbUrl,
-    ssl: { rejectUnauthorized: false },
+    ssl: {
+      rejectUnauthorized: false
+    }
   });
 
   db = {
@@ -34,10 +36,17 @@ console.log("✅ DATABASE_URL:", dbUrl);
       pool.query(text, params)
         .then(() => callback && callback(null))
         .catch(err => callback && callback(err));
-    },
+    }
   };
+
 } else {
-  db = new sqlite3.Database('./exercise.db');
+  db = new sqlite3.Database('./exercise.db', (err) => {
+    if (err) {
+      console.error("❌ Failed to connect to local SQLite DB:", err.message);
+    } else {
+      console.log("✅ Connected to local SQLite DB.");
+    }
+  });
 }
 
 module.exports = db;
