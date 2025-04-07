@@ -1,6 +1,31 @@
 const express = require('express');
 const path = require('path');
-const sqlite3 = require('sqlite3');
+const { Pool } = require('pg');
+require('dotenv').config();
+
+console.log("✅ DATABASE_URL:", process.env.DATABASE_URL);
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
+
+module.exports = {
+  all: (query, params, callback) => pool.query(query, params)
+    .then(result => callback(null, result.rows))
+    .catch(err => callback(err)),
+    
+  get: (query, params, callback) => pool.query(query, params)
+    .then(result => callback(null, result.rows[0]))
+    .catch(err => callback(err)),
+
+  run: (query, params, callback) => pool.query(query, params)
+    .then(() => callback(null))
+    .catch(err => callback(err))
+};
+
 const methodOverride = require('method-override');
 const multer = require('multer');
 const fs = require('fs');
