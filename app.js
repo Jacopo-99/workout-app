@@ -177,7 +177,7 @@ app.put('/exercises/:id', upload.array('images', 10), (req, res) => {
     SET name = ?, complexity = ?, description = ?,
         exercise_type = ?, position = ?, equipment = ?, muscle_group = ?
         ${images ? ', images = ?' : ''}
-    WHERE id = ?
+    WHERE id = $1'
   `;
 
   const params = [name, complexity, description, exercise_type, position, equipment, muscle_group];
@@ -307,7 +307,7 @@ app.put('/exercises/:id', upload.array('images', 10), (req, res) => {
     UPDATE exercises SET name = ?, complexity = ?, description = ?, 
     exercise_type = ?, position = ?, equipment = ?, muscle_group = ?
     ${images ? ', images = ?' : ''}
-    WHERE id = ?
+    WHERE id = $1'
   `;
   const params = [name, complexity, description, exercise_type, position, equipment, muscle_group];
   if (images) params.push(images);
