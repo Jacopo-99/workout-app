@@ -257,13 +257,11 @@ app.delete('/exercises/:id/image', (req, res) => {
 });
 
 
-app.get('/exercises/group/:muscle', (req, res) => {
+app.get('/exercises/group/:muscle', async (req, res) => {
   const group = req.params.muscle;
 
-  db.all('SELECT * FROM exercises', (err, allExercises) => {
-    if (err) return res.send('Errore nel recupero esercizi.');
-
-    // Filtra esercizi che contengono il muscolo selezionato
+  try {
+    const allExercises = await db.all('SELECT * FROM exercises');
     const exercises = allExercises.filter(ex => {
       try {
         const groups = JSON.parse(ex.muscle_group || '[]');
@@ -272,7 +270,6 @@ app.get('/exercises/group/:muscle', (req, res) => {
         return false;
       }
     }).map(ex => {
-      // Aggiungi thumbnail (prima immagine o null)
       try {
         const images = JSON.parse(ex.images || '[]');
         return { ...ex, thumbnail: images[0] || null };
@@ -281,19 +278,20 @@ app.get('/exercises/group/:muscle', (req, res) => {
       }
     });
 
-    // Recupera tutti i workout per la tendina
-    db.all('SELECT * FROM workouts ORDER BY name', (err2, workouts) => {
-      if (err2) return res.send('Errore nel recupero workout.');
+    const workouts = await db.all('SELECT * FROM workouts ORDER BY name');
 
-      // Passa tutto alla pagina
-      res.render('group_gallery', {
-        groupName: group.charAt(0).toUpperCase() + group.slice(1).replace(/_/g, ' '),
-        exercises,
-        workouts
-      });
+    res.render('group_gallery', {
+      groupName: group.charAt(0).toUpperCase() + group.slice(1).replace(/_/g, ' '),
+      exercises,
+      workouts
     });
-  });
+
+  } catch (err) {
+    console.error(err);
+    res.send('Errore nel recupero dati.');
+  }
 });
+
 
 
 app.put('/exercises/:id', upload.array('images', 10), (req, res) => {
