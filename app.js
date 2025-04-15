@@ -1,428 +1,245 @@
-const express = require('express');
-const path = require('path');
-const { Pool } = require('pg');
-require('dotenv').config();
-
-console.log("✅ DATABASE_URL:", process.env.DATABASE_URL);
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
-});
-
-module.exports = {
-  all: (query, params, callback) => pool.query(query, params)
-    .then(result => callback(null, result.rows))
-    .catch(err => callback(err)),
-    
-  get: (query, params, callback) => pool.query(query, params)
-    .then(result => callback(null, result.rows[0]))
-    .catch(err => callback(err)),
-
-  run: (query, params, callback) => pool.query(query, params)
-    .then(() => callback(null))
-    .catch(err => callback(err))
-};
-
-const methodOverride = require('method-override');
-const multer = require('multer');
-const fs = require('fs');
+const express = require("express");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
+const db = require("./db");
+require("dotenv").config();
 
 const app = express();
-const db = require('./db');
+const PORT = process.env.PORT || 8080;
 
 // Middleware
+app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true }));
-app.use(methodOverride('_method'));
-app.use(express.static(path.join(__dirname, 'public')));
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
+app.use(express.json());
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Homepage
-app.get('/', (req, res) => {
-  res.render('home');
-});
-
-
-// Multer per immagini multiple
+// Multer setup
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'public/uploads'),
-  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
+  destination: function (req, file, cb) {
+    const uploadDir = path.join(__dirname, "uploads");
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir);
+    }
+    cb(null, "uploads");
+  },
+  filename: function (req, file, cb) {
+    const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1E9)}${path.extname(file.originalname)}`;
+    cb(null, uniqueName);
+  }
 });
 const upload = multer({ storage });
 
-// ========== ROTTE ESERCIZI ==========
-
-const muscleGroups = [
-  'Abductors', 'Abs', 'Adductors', 'Biceps', 'Calves', 'Chest', 'Forearms',
-  'Glutes', 'Hamstring', 'Hip Flexors', 'Lats', 'Lower Back',
-  'Obliques', 'Quads', 'Shoulders', 'Traps', 'Triceps', 'Upper Back'
-];
-
-// Pagina esercizi
-app.get('/exercises', (req, res) => {
-  res.render('exercises', { groups: muscleGroups });
+// Homepage
+app.get("/", (req, res) => {
+  res.render("index");
 });
 
-// Pagina nuovo esercizio
-app.get('/exercises/add', (req, res) => {
-  res.render('add_exercise');
+// Show all exercises
+app.get("/exercises", async (req, res) => {
+  try {
+    const exercises = await db.all("SELECT * FROM exercises ORDER BY id DESC");
+    res.render("exercises", { exercises });
+  } catch (err) {
+    res.status(500).send("Internal Server Error");
+  }
 });
 
-app.get('/exercises/search', (req, res) => {
-  const { equipment, complexity, type, position, muscle_group } = req.query;
-
-  let query = 'SELECT * FROM exercises';
-  let conditions = [];
-  let params = [];
-
-  if (equipment) {
-    conditions.push("type_of_exercise LIKE ?");
-    params.push(`%${equipment}%`);
-  }
-
-  if (complexity) {
-    conditions.push("complexity = ?");
-    params.push(complexity);
-  }
-
-  if (type) {
-    conditions.push("exercise_type LIKE ?");
-    params.push(`%${type}%`);
-  }
-
-  if (position) {
-    conditions.push("position LIKE ?");
-    params.push(`%${position}%`);
-  }
-
-  if (muscle_group) {
-    conditions.push("muscle_group LIKE ?");
-    params.push(`%${muscle_group}%`);
-  }
-
-  if (conditions.length > 0) {
-    query += ' WHERE ' + conditions.join(' AND ');
-  }
-
-  db.all(query, params, (err, rows) => {
-    if (err) {
-      console.error(err);
-      return res.send('Errore nella ricerca.');
-    }
-
-    if (!rows || rows.length === 0) {
-      return res.send('Esercizio non trovato.');
-    }
-
-    const exercises = rows.map(ex => {
-      try {
-        const images = JSON.parse(ex.images || '[]');
-        return { ...ex, thumbnail: images[0] || null };
-      } catch {
-        return { ...ex, thumbnail: null };
-      }
-    });
-
-    res.render('search_results', { exercises });
-  });
+// Add exercise form
+app.get("/exercises/add", (req, res) => {
+  res.render("add_exercise");
 });
 
+// Submit new exercise
+app.post("/exercises", upload.array("images", 5), async (req, res) => {
+  const {
+    title,
+    complexity,
+    exercise_type,
+    position,
+    equipment,
+    muscle_group,
+    description
+  } = req.body;
 
+  const imagePaths = req.files.map(file => "/uploads/" + file.filename);
 
-// Salva esercizio
-app.post('/exercises', upload.array('images', 10), (req, res) => {
-  const { name, complexity, description } = req.body;
+  const values = [
+    title,
+    complexity,
+    JSON.stringify(exercise_type instanceof Array ? exercise_type : [exercise_type]),
+    JSON.stringify(position instanceof Array ? position : [position]),
+    JSON.stringify(equipment instanceof Array ? equipment : [equipment]),
+    JSON.stringify(muscle_group instanceof Array ? muscle_group : [muscle_group]),
+    description,
+    imagePaths
+  ];
 
-  const exercise_type = JSON.stringify([].concat(req.body.exercise_type || []));
-  const position = JSON.stringify([].concat(req.body.position || []));
-  const type_of_exercise = JSON.stringify([].concat(req.body.type_of_exercise || []));
-  const muscle_group = JSON.stringify([].concat(req.body.muscle_group || []));
-  const images = JSON.stringify(req.files.map(f => '/uploads/' + f.filename));
-
-  db.run(`
-    INSERT INTO exercises (
-      name, complexity, description, exercise_type, position, type_of_exercise, muscle_group, images
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `, [name, complexity, description, exercise_type, position, type_of_exercise, muscle_group, images], (err) => {
-    if (err) {
-      console.error('Errore nel salvataggio esercizio:', err);
-      return res.send('Errore nel salvataggio esercizio');
-    }
-    res.redirect('/exercises');
-  });
-});
-
-
-
-// Dettaglio esercizio
-app.put('/exercises/:id', upload.array('images', 10), (req, res) => {
-  const id = req.params.id;
-  const { name, complexity, description } = req.body;
-  const exercise_type = JSON.stringify([].concat(req.body.exercise_type || []));
-  const position = JSON.stringify([].concat(req.body.position || []));
-  const equipment = JSON.stringify([].concat(req.body.equipment || []));
-  const muscle_group = JSON.stringify([].concat(req.body.muscle_group || []));
-
-  // Se ci sono immagini nuove, usale. Altrimenti lascia invariato il campo immagini
-  const images = req.files && req.files.length > 0
-    ? JSON.stringify(req.files.map(f => '/uploads/' + f.filename))
-    : null;
-
-  const query = `
-    UPDATE exercises
-    SET name = ?, complexity = ?, description = ?,
-        exercise_type = ?, position = ?, equipment = ?, muscle_group = ?
-        ${images ? ', images = ?' : ''}
-    WHERE id = $1'
+  const sql = `
+    INSERT INTO exercises (title, complexity, exercise_type, position, equipment, muscle_group, description, images)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
   `;
-
-  const params = [name, complexity, description, exercise_type, position, equipment, muscle_group];
-  if (images) params.push(images);
-  params.push(id);
-
-  db.run(query, params, (err) => {
-    if (err) {
-      console.error('Errore SQL:', err); // 👈 Questo ti aiuta a capire dove fallisce
-      return res.send('Errore nella modifica');
-    }
-
-    res.redirect('/exercises/' + id);
-  });
-});
-
-
-// Modifica esercizio
-app.get('/exercises/:id/edit', (req, res) => {
-  db.get('SELECT * FROM exercises WHERE id = ?', [req.params.id], (err, exercise) => {
-    if (err || !exercise) return res.send('Esercizio non trovato.');
-    res.render('edit_exercise', { exercise });
-  });
-});
-
-app.get('/exercises/:id', (req, res) => {
-  const id = req.params.id;
-
-  db.get('SELECT * FROM exercises WHERE id = ?', [id], (err, exercise) => {
-    if (err || !exercise) return res.status(404).send('Esercizio non trovato.');
-
-    try {
-      exercise.muscle_group = JSON.parse(exercise.muscle_group || '[]');
-      exercise.exercise_type = JSON.parse(exercise.exercise_type || '[]');
-      exercise.position = JSON.parse(exercise.position || '[]');
-      exercise.equipment = JSON.parse(exercise.equipment || '[]');
-      exercise.images = JSON.parse(exercise.images || '[]');
-    } catch (e) {
-      return res.send('Errore nel parsing dei dati.');
-    }
-
-    res.render('exercise_detail', { exercise });
-  });
-});
-
-app.delete('/exercises/:id/image', (req, res) => {
-  const id = req.params.id;
-  const { src } = req.body;
-  const imagePath = path.join(__dirname, 'public', src); // path completo
-
-  db.get('SELECT images FROM exercises WHERE id = ?', [id], (err, row) => {
-    if (err || !row) return res.status(500).send('Esercizio non trovato');
-
-    let images;
-    try {
-      images = JSON.parse(row.images || '[]');
-    } catch (e) {
-      return res.send('Errore nel parsing immagini');
-    }
-
-    const updatedImages = images.filter(i => i !== src);
-
-    // Rimuove il file fisicamente se esiste
-    fs.unlink(imagePath, (fsErr) => {
-      if (fsErr && fsErr.code !== 'ENOENT') {
-        console.error('Errore durante l\'eliminazione del file:', fsErr);
-        return res.send('Errore nel file system');
-      }
-
-      // Aggiorna il database
-      db.run('UPDATE exercises SET images = ? WHERE id = ?', [JSON.stringify(updatedImages), id], (updateErr) => {
-        if (updateErr) return res.send('Errore nel salvataggio immagini aggiornate');
-        res.redirect('/exercises/' + id);
-      });
-    });
-  });
-});
-
-
-app.get('/exercises/group/:muscle', async (req, res) => {
-  const group = req.params.muscle;
 
   try {
-    const allExercises = await db.all('SELECT * FROM exercises');
-    const exercises = allExercises.filter(ex => {
-      try {
-        const groups = JSON.parse(ex.muscle_group || '[]');
-        return groups.includes(group);
-      } catch {
-        return false;
-      }
-    }).map(ex => {
-      try {
-        const images = JSON.parse(ex.images || '[]');
-        return { ...ex, thumbnail: images[0] || null };
-      } catch {
-        return { ...ex, thumbnail: null };
-      }
-    });
-
-    const workouts = await db.all('SELECT * FROM workouts ORDER BY name');
-
-    res.render('group_gallery', {
-      groupName: group.charAt(0).toUpperCase() + group.slice(1).replace(/_/g, ' '),
-      exercises,
-      workouts
-    });
-
+    await db.run(sql, values);
+    res.redirect("/exercises");
   } catch (err) {
-    console.error(err);
-    res.send('Errore nel recupero dati.');
+    console.error("Errore nel salvataggio esercizio:", err);
+    res.status(500).send("Errore nel salvataggio esercizio");
   }
 });
 
-
-
-app.put('/exercises/:id', upload.array('images', 10), (req, res) => {
-  const id = req.params.id;
-  const { name, complexity, description } = req.body;
-  const exercise_type = JSON.stringify([].concat(req.body.exercise_type || []));
-  const position = JSON.stringify([].concat(req.body.position || []));
-  const equipment = JSON.stringify([].concat(req.body.equipment || []));
-  const muscle_group = JSON.stringify([].concat(req.body.muscle_group || []));
-  const images = req.files.length ? JSON.stringify(req.files.map(f => '/uploads/' + f.filename)) : null;
-
-  const query = `
-    UPDATE exercises SET name = ?, complexity = ?, description = ?, 
-    exercise_type = ?, position = ?, equipment = ?, muscle_group = ?
-    ${images ? ', images = ?' : ''}
-    WHERE id = $1'
-  `;
-  const params = [name, complexity, description, exercise_type, position, equipment, muscle_group];
-  if (images) params.push(images);
-  params.push(id);
-
-  db.run(query, params, (err) => {
-    if (err) return res.send('Errore nella modifica');
-    res.redirect('/exercises/' + id);
-  });
+// Exercise details
+app.get("/exercises/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const exercise = await db.get("SELECT * FROM exercises WHERE id = $1", [id]);
+    if (!exercise) {
+      return res.status(404).send("Esercizio non trovato.");
+    }
+    res.render("exercise_detail", { exercise });
+  } catch (err) {
+    res.status(500).send("Errore nel recupero dell'esercizio.");
+  }
 });
 
-app.delete('/exercises/:id', (req, res) => {
-  db.run('DELETE FROM exercises WHERE id = ?', [req.params.id], err => {
-    if (err) return res.send('Errore nella cancellazione');
-    res.redirect('/exercises');
-  });
+// Edit exercise form
+app.get("/exercises/:id/edit", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const exercise = await db.get("SELECT * FROM exercises WHERE id = $1", [id]);
+    if (!exercise) {
+      return res.status(404).send("Esercizio non trovato.");
+    }
+    res.render("edit_exercise", { exercise });
+  } catch (err) {
+    res.status(500).send("Errore nel recupero dell'esercizio.");
+  }
 });
 
-// ========== ROTTE WORKOUT ==========
+// Submit edit
+app.post("/exercises/:id/edit", upload.array("images", 5), async (req, res) => {
+  const { id } = req.params;
+  const {
+    title,
+    complexity,
+    exercise_type,
+    position,
+    equipment,
+    muscle_group,
+    description
+  } = req.body;
 
-app.get('/workouts', (req, res) => {
-  res.render('workouts');
+  try {
+    const existing = await db.get("SELECT * FROM exercises WHERE id = $1", [id]);
+    if (!existing) return res.status(404).send("Esercizio non trovato");
+
+    let currentImages = existing.images || [];
+    if (typeof currentImages === "string") currentImages = JSON.parse(currentImages);
+
+    const newImages = req.files.map(file => "/uploads/" + file.filename);
+    const finalImages = [...currentImages, ...newImages];
+
+    const values = [
+      title,
+      complexity,
+      JSON.stringify(exercise_type instanceof Array ? exercise_type : [exercise_type]),
+      JSON.stringify(position instanceof Array ? position : [position]),
+      JSON.stringify(equipment instanceof Array ? equipment : [equipment]),
+      JSON.stringify(muscle_group instanceof Array ? muscle_group : [muscle_group]),
+      description,
+      finalImages,
+      id
+    ];
+
+    const sql = `
+      UPDATE exercises
+      SET title = $1, complexity = $2, exercise_type = $3, position = $4,
+          equipment = $5, muscle_group = $6, description = $7, images = $8
+      WHERE id = $9
+    `;
+
+    await db.run(sql, values);
+    res.redirect(`/exercises/${id}`);
+  } catch (err) {
+    console.error("Errore nella modifica:", err);
+    res.status(500).send("Errore nella modifica");
+  }
 });
 
-app.get('/workouts/new', (req, res) => {
-  res.render('new_workout');
+// Delete an image from an exercise
+app.delete("/exercises/:id/image", async (req, res) => {
+  const { id } = req.params;
+  const { image } = req.body;
+
+  try {
+    const exercise = await db.get("SELECT * FROM exercises WHERE id = $1", [id]);
+    if (!exercise) return res.status(404).send("Esercizio non trovato");
+
+    let currentImages = exercise.images || [];
+    if (typeof currentImages === "string") currentImages = JSON.parse(currentImages);
+
+    const updatedImages = currentImages.filter(img => img !== image);
+    const sql = "UPDATE exercises SET images = $1 WHERE id = $2";
+    await db.run(sql, [updatedImages, id]);
+
+    // Delete file physically
+    const filePath = path.join(__dirname, image);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+
+    res.status(200).send("Immagine eliminata");
+  } catch (err) {
+    console.error("Errore nell'eliminazione immagine:", err);
+    res.status(500).send("Errore nell'eliminazione immagine");
+  }
 });
 
-app.post('/workouts', (req, res) => {
-  const { name, category, equipment, muscle_group, exercise_type, position } = req.body;
+// Search exercises
+app.get("/exercises/search", async (req, res) => {
+  try {
+    const allExercises = await db.all("SELECT * FROM exercises");
 
-  const values = [
-    name,
-    category,
-    JSON.stringify([].concat(equipment || [])),
-    JSON.stringify([].concat(muscle_group || [])),
-    JSON.stringify([].concat(exercise_type || [])),
-    JSON.stringify([].concat(position || []))
-  ];
+    const { equipment, complexity, type, position, muscle_group } = req.query;
 
-  db.run(`
-    INSERT INTO workouts (name, category, equipment, muscle_group, exercise_type, position)
-    VALUES (?, ?, ?, ?, ?, ?)`, values, function(err) {
-    if (err) return res.send('Errore nel salvataggio workout');
-    res.redirect('/workouts/category/' + category);
-  });
-});
-
-app.get('/workouts/category/:slug', (req, res) => {
-  const { slug } = req.params;
-  const sort = req.query.sort || 'name';
-  const order = req.query.order === 'desc' ? 'DESC' : 'ASC';
-  const allowed = ['name', 'category', 'equipment', 'muscle_group', 'exercise_type', 'position'];
-  const sortColumn = allowed.includes(sort) ? sort : 'name';
-
-  db.all(`SELECT * FROM workouts WHERE category = ? ORDER BY ${sortColumn} COLLATE NOCASE ${order}`, [slug], (err, workouts) => {
-    if (err) return res.status(500).send('Errore nel recupero dei workout per categoria');
-    res.render('workouts_by_category', { workouts, category: slug, sort, order });
-  });
-});
-
-app.get('/workouts/:id', (req, res) => {
-  const id = req.params.id;
-
-  db.get('SELECT * FROM workouts WHERE id = ?', [id], (err, workout) => {
-    if (err || !workout) return res.status(404).send('Workout non trovato.');
-
-    db.all(`
-      SELECT e.* FROM exercises e
-      INNER JOIN workout_exercises we ON e.id = we.exercise_id
-      WHERE we.workout_id = ?
-    `, [id], (err2, exercises) => {
-      if (err2) return res.status(500).send('Errore nel recupero esercizi.');
-      res.render('workout_detail', { workout, exercises });
+    const filtered = allExercises.filter(ex => {
+      const matchesEquipment = !equipment || (Array.isArray(ex.equipment) ? ex.equipment.includes(equipment) : JSON.parse(ex.equipment || "[]").includes(equipment));
+      const matchesComplexity = !complexity || ex.complexity === complexity;
+      const matchesType = !type || (Array.isArray(ex.exercise_type) ? ex.exercise_type.includes(type) : JSON.parse(ex.exercise_type || "[]").includes(type));
+      const matchesPosition = !position || (Array.isArray(ex.position) ? ex.position.includes(position) : JSON.parse(ex.position || "[]").includes(position));
+      const matchesMuscleGroup = !muscle_group || (Array.isArray(ex.muscle_group) ? ex.muscle_group.includes(muscle_group) : JSON.parse(ex.muscle_group || "[]").includes(muscle_group));
+      return matchesEquipment && matchesComplexity && matchesType && matchesPosition && matchesMuscleGroup;
     });
-  });
+
+    res.render("search_results", { exercises: filtered });
+  } catch (err) {
+    console.error("Errore nella ricerca:", err);
+    res.status(500).send("Errore nella ricerca");
+  }
 });
 
-app.get('/workouts/:id/edit', (req, res) => {
-  db.get('SELECT * FROM workouts WHERE id = ?', [req.params.id], (err, workout) => {
-    if (err || !workout) return res.send('Workout non trovato.');
-    res.render('edit_workout', { workout });
-  });
+// View exercises by muscle group
+app.get("/exercises/group/:group", async (req, res) => {
+  const { group } = req.params;
+
+  try {
+    const allExercises = await db.all("SELECT * FROM exercises");
+    const filtered = allExercises.filter(ex => {
+      const groups = typeof ex.muscle_group === "string" ? JSON.parse(ex.muscle_group || "[]") : ex.muscle_group;
+      return groups.includes(group);
+    });
+
+    res.render("group_gallery", {
+      exercises: filtered,
+      groupName: group.charAt(0).toUpperCase() + group.slice(1)
+    });
+  } catch (err) {
+    console.error("Errore nel recupero gruppo:", err);
+    res.status(500).send("Errore nel recupero gruppo");
+  }
 });
 
-app.put('/workouts/:id', (req, res) => {
-  const { name, category, equipment, muscle_group, exercise_type, position } = req.body;
-
-  const values = [
-    name,
-    category,
-    JSON.stringify([].concat(equipment || [])),
-    JSON.stringify([].concat(muscle_group || [])),
-    JSON.stringify([].concat(exercise_type || [])),
-    JSON.stringify([].concat(position || [])),
-    req.params.id
-  ];
-
-  db.run(`
-    UPDATE workouts SET name = ?, category = ?, equipment = ?, muscle_group = ?, exercise_type = ?, position = ?
-    WHERE id = ?`, values, (err) => {
-    if (err) return res.send('Errore nella modifica workout');
-    res.redirect('/workouts/category/' + category);
-  });
-});
-
-app.delete('/workouts/:id', (req, res) => {
-  db.run('DELETE FROM workouts WHERE id = ?', [req.params.id], err => {
-    if (err) return res.send('Errore nella cancellazione workout');
-    res.redirect('/workouts');
-  });
-});
-
-// AVVIO SERVER
-const PORT = process.env.PORT || 3000;
+// START SERVER
 app.listen(PORT, () => {
+  console.log(`✅ DATABASE_URL: ${process.env.DATABASE_URL}`);
   console.log(`✅ Server running on port ${PORT}`);
 });
