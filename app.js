@@ -142,12 +142,12 @@ app.post('/exercises', upload.array('images', 10), (req, res) => {
   const muscle_group = JSON.stringify([].concat(req.body.muscle_group || []));
   const images = JSON.stringify(req.files.map(f => '/uploads/' + f.filename));
 
-  db.run(`
-    INSERT INTO exercises (
-      name, complexity, description, exercise_type, position, type_of_exercise, muscle_group, images
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `, [name, complexity, description, exercise_type, position, type_of_exercise, muscle_group, images], (err) => {
+db.run(`
+  INSERT INTO exercises (
+    name, complexity, description, exercise_type, position, type_of_exercise, muscle_group, images
+  )
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+`, [name, complexity, description, exercise_type, position, type_of_exercise, muscle_group, images], (err) => {
     if (err) {
       console.error('Errore nel salvataggio esercizio:', err);
       return res.send('Errore nel salvataggio esercizio');
