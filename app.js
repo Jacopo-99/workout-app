@@ -7,7 +7,6 @@ const db = require('./db');
 const { safeJSONParse } = require('./json-utils');
 
 const methodOverride = require('method-override');
-const multer = require('multer');
 const fs = require('fs');
 
 const app = express();
@@ -29,13 +28,6 @@ app.set('views', path.join(__dirname, 'views'));
 app.get('/', (req, res) => {
   res.render('home');
 });
-
-// Multer for multiple image uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadPath),
-  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
-});
-const upload = multer({ storage });
 
 // ========== ROTTE ESERCIZI ==========
 
@@ -124,19 +116,23 @@ app.get('/exercises/search', (req, res) => {
 // Fixed exercise save route for PostgreSQL ARRAY type
 
 // Salva esercizio
-app.post('/exercises', upload.array('images', 10), (req, res) => {
+app.post('/exercises', (req, res) => {
   console.log('🧠 BODY:', req.body);
-  const { title, complexity, description } = req.body;
+  const { title, complexity, description, image_url } = req.body;
 
   if (!title || title.trim() === '') {
     return res.send('Il campo titolo è obbligatorio');
+  }
+
+  if (!image_url || image_url.trim() === '') {
+    return res.send('You must provide an image URL.');
   }
 
   const exercise_type = [].concat(req.body.exercise_type || []);
   const position = [].concat(req.body.position || []);
   const equipment = [].concat(req.body.equipment || []);
   const muscle_group = [].concat(req.body.muscle_group || []);
-  const images = req.files.map(f => '/uploads/' + f.filename);
+  const images = [image_url.trim()];
 
   const query = `
     INSERT INTO exercises 
@@ -144,19 +140,16 @@ app.post('/exercises', upload.array('images', 10), (req, res) => {
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
   `;
 
-  // For text fields that should contain arrays as JSON strings
   const values = [
     title,
     complexity,
     JSON.stringify(exercise_type),
-    JSON.stringify(position), 
+    JSON.stringify(position),
     JSON.stringify(equipment),
     JSON.stringify(muscle_group),
     description,
-    images  // Send as native JavaScript array - PostgreSQL will convert it to a native array
+    images
   ];
-
-  console.log('Images array:', images); // Debug log
 
   db.run(query, values, (err) => {
     if (err) {
@@ -168,8 +161,9 @@ app.post('/exercises', upload.array('images', 10), (req, res) => {
   });
 });
 
+
 // Update exercise with proper array handling
-app.put('/exercises/:id', upload.array('images', 10), (req, res) => {
+app.put('/exercises/:id', (req, res) => {
   const id = req.params.id;
   const { title, complexity, description } = req.body;
   const exercise_type = JSON.stringify([].concat(req.body.exercise_type || []));
@@ -178,7 +172,7 @@ app.put('/exercises/:id', upload.array('images', 10), (req, res) => {
   const muscle_group = JSON.stringify([].concat(req.body.muscle_group || []));
 
   // Get current images
-  db.get('SELECT images FROM exercises WHERE id = $1', [id], (err, exercise) => {
+  db.get('SELECT * FROM exercises WHERE id = $1', [id], (err, exercise) => {
     if (err) {
       console.error("Error fetching current images:", err);
       return res.status(500).send('Errore nel recupero esercizio');
@@ -190,8 +184,11 @@ app.put('/exercises/:id', upload.array('images', 10), (req, res) => {
       currentImages = exercise.images; // Should already be an array
     }
     
-    let newImages = req.files.map(f => '/uploads/' + f.filename);
-    let allImages = [...currentImages, ...newImages];
+    let newImages = [];
+    if (req.body.image_url && req.body.image_url.trim() !== '') {
+      newImages.push(req.body.image_url.trim());
+    }
+    let allImages = [...currentImages, ...newImages];    
     
     const query = `
       UPDATE exercises 
@@ -419,56 +416,6 @@ app.get('/exercises/group/:muscle', (req, res) => {
   });
 });
 
-// Update exercise
-app.put('/exercises/:id', upload.array('images', 10), (req, res) => {
-  const id = req.params.id;
-  const { name, complexity, description } = req.body;
-  const exercise_type = JSON.stringify([].concat(req.body.exercise_type || []));
-  const position = JSON.stringify([].concat(req.body.position || []));
-  const equipment = JSON.stringify([].concat(req.body.equipment || []));
-  const muscle_group = JSON.stringify([].concat(req.body.muscle_group || []));
-
-  // Get current images
-  db.get('SELECT images FROM exercises WHERE id = $1', [id], (err, exercise) => {
-    if (err) {
-      console.error("Error fetching current images:", err);
-      return res.status(500).send('Errore nel recupero esercizio');
-    }
-
-    let currentImages = safeJSONParse(exercise?.images, []);
-    let newImages = req.files.map(f => '/uploads/' + f.filename);
-    let allImages = [...currentImages, ...newImages];
-    
-    const query = `
-      UPDATE exercises 
-      SET name = $1, complexity = $2, description = $3,
-          exercise_type = $4, position = $5, equipment = $6, muscle_group = $7,
-          images = $8
-      WHERE id = $9
-    `;
-    
-    const params = [
-      name, 
-      complexity, 
-      description, 
-      exercise_type, 
-      position, 
-      equipment, 
-      muscle_group,
-      JSON.stringify(allImages),
-      id
-    ];
-
-    db.run(query, params, (err) => {
-      if (err) {
-        console.error("Update error:", err);
-        return res.status(500).send('Errore nella modifica: ' + err.message);
-      }
-      res.redirect('/exercises/' + id);
-    });
-  });
-});
-
 // Elimina esercizio
 app.delete('/exercises/:id', (req, res) => {
   db.run('DELETE FROM exercises WHERE id = $1', [req.params.id], err => {
@@ -555,6 +502,40 @@ app.get('/workouts/category/:slug', (req, res) => {
     });
   });
 });
+
+//Edit Workout
+app.get('/exercises/:id/edit', (req, res) => {
+  const id = req.params.id;
+
+  db.get('SELECT * FROM exercises WHERE id = $1', [id], (err, exercise) => {
+    if (err) {
+      console.error("Error fetching exercise for edit:", err);
+      return res.status(500).send('Errore nel recupero esercizio: ' + err.message);
+    }
+
+    if (!exercise) {
+      return res.status(404).send('Esercizio non trovato.');
+    }
+
+    // Parse JSON fields safely if needed
+    const safeParse = (data) => {
+      if (Array.isArray(data)) return data;
+      try {
+        return JSON.parse(data);
+      } catch {
+        return [];
+      }
+    };
+    
+    exercise.equipment = safeParse(exercise.equipment);
+    exercise.exercise_type = safeParse(exercise.exercise_type);
+    exercise.position = safeParse(exercise.position);
+    exercise.muscle_group = safeParse(exercise.muscle_group);
+
+    res.render('edit_exercise', { exercise });
+  });
+});
+
 
 // FIXED: Workout detail
 app.get('/workouts/:id', (req, res) => {

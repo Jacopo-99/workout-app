@@ -40,33 +40,28 @@
 <body>
   <h1>Edit Exercise</h1>
 
-  <% if (exercise.image) {
-    let images = [];
-    try {
-      images = JSON.parse(exercise.image);
-    } catch {
-      images = [exercise.image];
-    }
-  %>
+  <% if (exercise.images && exercise.images.length > 0) { %>
     <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-      <% images.forEach(img => { %>
-        <img class="preview" src="<%= img %>" alt="<%= exercise.name %>">
+      <% exercise.images.forEach(img => { %>
+        <img class="preview" src="<%= img %>" alt="<%= exercise.title %>">
       <% }) %>
     </div>
   <% } %>
+  
 
-  <form action="/exercises/<%= exercise.id %>?_method=PUT" method="POST" enctype="multipart/form-data">
+  <form action="/exercises/<%= exercise.id %>?_method=PUT" method="POST">
     <label>Name:
-      <input type="text" name="name" value="<%= exercise.name %>" required>
+      <input type="text" name="title" value="<%= exercise.title %>" required>
     </label>
+    
 
     <label>Description:
       <textarea name="description" rows="4" cols="50"><%= exercise.description || '' %></textarea>
     </label>
 
-    <label>Change Image:
-      <input type="file" name="images" multiple>
-    </label>
+    <label>Add Image by URL:
+      <input type="url" name="image_url" placeholder="https://example.com/image.jpg">
+    </label>    
 
     <fieldset>
       <legend>Equipment</legend>
@@ -75,12 +70,12 @@
           'Barbell', 'Kettlebell', 'Dumbbell', 'Resistance band (long)',
           'Resistance band (short)', 'Blocks', 'Mat', 'Bodyweight'
         ]; %>
-        <% let selectedEquip = []; try { selectedEquip = JSON.parse(exercise.type_of_exercise); } catch { selectedEquip = [exercise.type_of_exercise]; } %>
+        <% let selectedEquip = exercise.equipment || []; %>
         <% equipment.forEach(eq => {
           const value = eq.toLowerCase().replace(/ /g, '_').replace(/[()]/g, '');
         %>
           <label>
-            <input type="checkbox" name="type_of_exercise" value="<%= value %>" <%= selectedEquip.includes(value) ? 'checked' : '' %>> <%= eq %>
+            <input type="checkbox" name="equipment" value="<%= value %>" <%= selectedEquip.includes(value) ? 'checked' : '' %>> <%= eq %>
           </label>
         <% }); %>
       </div>
@@ -96,19 +91,19 @@
     <fieldset>
       <legend>Exercise Type</legend>
       <div class="checkbox-group">
-        <% let selectedET = []; try { selectedET = JSON.parse(exercise.exercise_type); } catch { selectedET = [exercise.exercise_type]; } %>
+        <% let selectedET = exercise.exercise_type || []; %>
         <% ['strength', 'cardio', 'stretch', 'warm up'].forEach(type => { %>
           <label>
             <input type="checkbox" name="exercise_type" value="<%= type %>" <%= selectedET.includes(type) ? 'checked' : '' %>> <%= type.charAt(0).toUpperCase() + type.slice(1) %>
           </label>
         <% }); %>
       </div>
-    </fieldset>
+    </fieldset>    
 
     <fieldset>
       <legend>Position</legend>
       <div class="checkbox-group">
-        <% let selectedPos = []; try { selectedPos = JSON.parse(exercise.position); } catch { selectedPos = [exercise.position]; } %>
+        <% let selectedPos = exercise.position || []; %>
         <% ['standing', 'seated', 'laying', 'bench'].forEach(pos => { %>
           <label>
             <input type="checkbox" name="position" value="<%= pos %>" <%= selectedPos.includes(pos) ? 'checked' : '' %>> <%= pos.charAt(0).toUpperCase() + pos.slice(1) %>
@@ -125,7 +120,7 @@
           'Glutes', 'Hamstring', 'Hip Flexors', 'Lats', 'Lower Back',
           'Obliques', 'Quads', 'Shoulders', 'Traps', 'Triceps', 'Upper Back'
         ]; %>
-        <% let selectedMuscles = []; try { selectedMuscles = JSON.parse(exercise.muscle_group); } catch { selectedMuscles = [exercise.muscle_group]; } %>
+        <% let selectedMuscles = exercise.muscle_group || []; %>
         <% groups.forEach(group => {
           const value = group.toLowerCase().replace(/ /g, '_');
         %>
@@ -134,7 +129,7 @@
           </label>
         <% }); %>
       </div>
-    </fieldset>
+    </fieldset>    
 
     <button type="submit">Save Changes</button>
   </form>
