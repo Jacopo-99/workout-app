@@ -67,14 +67,29 @@
   <div class="exercise-grid">
     <% exercises.forEach(exercise => { %>
       <a class="exercise-card" href="/exercises/<%= exercise.id %>">
+        <h3><%= exercise.title %></h3>
         <% if (exercise.thumbnail) { %>
           <img src="<%= exercise.thumbnail %>" alt="<%= exercise.name %>">
         <% } else { %>
           <img src="/images/placeholder.jpg" alt="No Image">
         <% } %>
-        <h3><%= exercise.name %></h3>
-      </a>
+      </a>      
     <% }) %>
   </div>
+
+  <div style="text-align: center; margin-top: 30px;">
+    <a href="/exercises" style="
+      display: inline-block;
+      padding: 12px 24px;
+      background-color: #28a745;
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      border-radius: 6px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      transition: background-color 0.2s ease;
+    " onmouseover="this.style.backgroundColor='#218838'" onmouseout="this.style.backgroundColor='#28a745'">
+      ⬅️ Back to Exercise
+    </a>
 </body>
 </html>

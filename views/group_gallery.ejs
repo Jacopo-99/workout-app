@@ -92,33 +92,32 @@
   <div class="exercise-grid">
     <% exercises.forEach(ex => { %>
       <a class="exercise-card" href="/exercises/<%= ex.id %>">
-        <div class="exercise-title"><%= ex.name %></div>
-
+        <div class="exercise-title"><%= ex.title %></div>
+  
         <% if (ex.thumbnail) { %>
-          <img src="<%= ex.thumbnail %>" alt="<%= ex.name %>">
+          <img src="<%= ex.thumbnail %>" alt="<%= ex.title %>">
         <% } else { %>
           <div class="no-image">No Image</div>
         <% } %>
-
-        <div class="exercise-description"><%= ex.description || 'No description' %></div>
       </a>
     <% }) %>
   </div>
-
+  
+  <!-- ✅ This is OUTSIDE the loop -->
   <div style="text-align: center; margin-top: 30px;">
-  <a href="/exercises" style="
-    display: inline-block;
-    padding: 12px 24px;
-    background-color: #28a745;
-    color: white;
-    text-decoration: none;
-    font-weight: bold;
-    border-radius: 6px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    transition: background-color 0.2s ease;
-  " onmouseover="this.style.backgroundColor='#218838'" onmouseout="this.style.backgroundColor='#28a745'">
-    ⬅️ Back to Exercise
-  </a>
-</div>
+    <a href="/exercises" style="
+      display: inline-block;
+      padding: 12px 24px;
+      background-color: #28a745;
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      border-radius: 6px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      transition: background-color 0.2s ease;
+    " onmouseover="this.style.backgroundColor='#218838'" onmouseout="this.style.backgroundColor='#28a745'">
+      ⬅️ Back to Exercise
+    </a>
+  </div>  
 </body>
 </html>

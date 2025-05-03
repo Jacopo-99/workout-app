@@ -7,7 +7,15 @@ const pool = new Pool({
 });
 
 module.exports = {
-  query: (text, params) => pool.query(text, params),
-  all: (text, params) => pool.query(text, params).then(res => res.rows),
-  run: (text, params) => pool.query(text, params),
+  all: (query, params, callback) => pool.query(query, params)
+    .then(result => callback(null, result.rows))
+    .catch(err => callback(err)),
+    
+  get: (query, params, callback) => pool.query(query, params)
+    .then(result => callback(null, result.rows[0]))
+    .catch(err => callback(err)),
+
+  run: (query, params, callback) => pool.query(query, params)
+    .then(() => callback(null))
+    .catch(err => callback(err))
 };
