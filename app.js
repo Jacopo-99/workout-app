@@ -271,15 +271,28 @@ app.get('/exercises/:id', (req, res) => {
       return res.status(404).send('Esercizio non trovato.');
     }
 
-    // Parse JSON fields safely
-    exercise.muscle_group = safeJSONParse(exercise.muscle_group, []);
-    exercise.exercise_type = safeJSONParse(exercise.exercise_type, []);
-    exercise.position = safeJSONParse(exercise.position, []);
-    exercise.equipment = safeJSONParse(exercise.equipment, []);
-    
-    // Images is already an array, no need to parse
-    // Just ensure it's an array in case of null/undefined
-    exercise.images = exercise.images || [];
+// Parse JSON fields safely
+exercise.muscle_group = safeJSONParse(exercise.muscle_group, []);
+exercise.exercise_type = safeJSONParse(exercise.exercise_type, []);
+exercise.position = safeJSONParse(exercise.position, []);
+exercise.equipment = safeJSONParse(exercise.equipment, []);
+
+// FIX images: handle string with commas or JSON array
+if (exercise.images) {
+  if (Array.isArray(exercise.images)) {
+    // ok già array
+  } else if (typeof exercise.images === 'string') {
+    try {
+      exercise.images = JSON.parse(exercise.images);
+    } catch (e) {
+      exercise.images = exercise.images.split(',').map(img => img.trim()).filter(img => img.length > 0);
+    }
+  } else {
+    exercise.images = [];
+  }
+} else {
+  exercise.images = [];
+}
 
     res.render('exercise_detail', { exercise });
   });

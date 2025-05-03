@@ -1,153 +1,190 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Edit Exercise</title>
   <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+      padding: 1rem;
+    }
+    .edit-container {
+      background: #fff;
+      max-width: 700px;
+      margin: auto;
+      padding: 1rem 1.2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 1rem;
+      font-size: 1.5rem;
+    }
     form {
       display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-      align-items: flex-start;
-      max-width: 800px;
-      margin: auto;
-    }
-    form label, form fieldset {
-      display: flex;
       flex-direction: column;
+      gap: 0.75rem;
+    }
+    label,
+    fieldset {
+      font-size: 0.95rem;
+    }
+    input[type="text"],
+    textarea,
+    input[type="url"],
+    select {
+      padding: 0.4rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 0.95rem;
+      margin-top: 0.3rem;
+    }
+    fieldset {
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 0.8rem;
+    }
+    legend {
+      font-weight: bold;
+      font-size: 0.95rem;
     }
     .checkbox-group {
       display: flex;
       flex-wrap: wrap;
       gap: 0.5rem;
+      margin-top: 0.5rem;
     }
     .checkbox-group label {
-      flex-direction: row;
+      display: flex;
       align-items: center;
+      gap: 0.3rem;
+      font-size: 0.9rem;
     }
-    button {
+    button[type="submit"] {
+      align-self: center;
+      padding: 0.5rem 1.5rem;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 1rem;
+      cursor: pointer;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+      transition: background-color 0.2s ease;
       margin-top: 1rem;
     }
-    img.preview {
-      max-width: 100%;
-      height: 200px;
-      object-fit: cover;
-      margin-bottom: 1rem;
-      border-radius: 8px;
+    button[type="submit"]:hover {
+      background-color: #218838;
+    }
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 1.5rem;
+      padding: 10px 20px;
+      background-color: #0077cc;
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      transition: background-color 0.2s ease;
+    }
+    .back-link:hover {
+      background-color: #005fa3;
     }
   </style>
 </head>
 <body>
-  <h1>Edit Exercise</h1>
+  <div class="edit-container">
+    <h1>Edit Exercise</h1>
 
-  <% if (exercise.images && exercise.images.length > 0) { %>
-    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-      <% exercise.images.forEach(img => { %>
-        <img class="preview" src="<%= img %>" alt="<%= exercise.title %>">
-      <% }) %>
-    </div>
-  <% } %>
-  
+    <form action="/exercises/<%= exercise.id %>?_method=PUT" method="POST">
+      <label>Name:
+        <input type="text" name="title" value="<%= exercise.title %>" required>
+      </label>
 
-  <form action="/exercises/<%= exercise.id %>?_method=PUT" method="POST">
-    <label>Name:
-      <input type="text" name="title" value="<%= exercise.title %>" required>
-    </label>
-    
+      <label>Description:
+        <textarea name="description" rows="3"><%= exercise.description || '' %></textarea>
+      </label>
 
-    <label>Description:
-      <textarea name="description" rows="4" cols="50"><%= exercise.description || '' %></textarea>
-    </label>
+      <label>Add Image by URL:
+        <input type="url" name="image_url" placeholder="https://example.com/image.jpg">
+      </label>
 
-    <label>Add Image by URL:
-      <input type="url" name="image_url" placeholder="https://example.com/image.jpg">
-    </label>    
+      <label>Complexity:
+        <select name="complexity">
+          <option value="simple" <%= exercise.complexity === 'simple' ? 'selected' : '' %>>Simple</option>
+          <option value="complex" <%= exercise.complexity === 'complex' ? 'selected' : '' %>>Complex</option>
+        </select>
+      </label>
 
-    <fieldset>
-      <legend>Equipment</legend>
-      <div class="checkbox-group">
-        <% const equipment = [
-          'Barbell', 'Kettlebell', 'Dumbbell', 'Resistance band (long)',
-          'Resistance band (short)', 'Blocks', 'Mat', 'Bodyweight'
-        ]; %>
-        <% let selectedEquip = exercise.equipment || []; %>
-        <% equipment.forEach(eq => {
-          const value = eq.toLowerCase().replace(/ /g, '_').replace(/[()]/g, '');
-        %>
-          <label>
-            <input type="checkbox" name="equipment" value="<%= value %>" <%= selectedEquip.includes(value) ? 'checked' : '' %>> <%= eq %>
-          </label>
-        <% }); %>
-      </div>
-    </fieldset>
+      <fieldset>
+        <legend>Exercise Type</legend>
+        <div class="checkbox-group">
+          <% let selectedET = exercise.exercise_type || []; %>
+          <% ['strength', 'cardio', 'stretch', 'warm up'].forEach(type => { %>
+            <label>
+              <input type="checkbox" name="exercise_type" value="<%= type %>" <%= selectedET.includes(type) ? 'checked' : '' %>> <%= type.charAt(0).toUpperCase() + type.slice(1) %>
+            </label>
+          <% }); %>
+        </div>
+      </fieldset>
 
-    <label>Complexity:
-      <select name="complexity">
-        <option value="simple" <%= exercise.complexity === 'simple' ? 'selected' : '' %>>Simple</option>
-        <option value="complex" <%= exercise.complexity === 'complex' ? 'selected' : '' %>>Complex</option>
-      </select>
-    </label>
+      <fieldset>
+        <legend>Position</legend>
+        <div class="checkbox-group">
+          <% let selectedPos = exercise.position || []; %>
+          <% ['standing', 'seated', 'laying', 'bench'].forEach(pos => { %>
+            <label>
+              <input type="checkbox" name="position" value="<%= pos %>" <%= selectedPos.includes(pos) ? 'checked' : '' %>> <%= pos.charAt(0).toUpperCase() + pos.slice(1) %>
+            </label>
+          <% }); %>
+        </div>
+      </fieldset>
 
-    <fieldset>
-      <legend>Exercise Type</legend>
-      <div class="checkbox-group">
-        <% let selectedET = exercise.exercise_type || []; %>
-        <% ['strength', 'cardio', 'stretch', 'warm up'].forEach(type => { %>
-          <label>
-            <input type="checkbox" name="exercise_type" value="<%= type %>" <%= selectedET.includes(type) ? 'checked' : '' %>> <%= type.charAt(0).toUpperCase() + type.slice(1) %>
-          </label>
-        <% }); %>
-      </div>
-    </fieldset>    
+      <fieldset>
+        <legend>Equipment</legend>
+        <div class="checkbox-group">
+          <% const equipment = [
+            'Barbell', 'Kettlebell', 'Dumbbell', 'Resistance band (long)',
+            'Resistance band (short)', 'Blocks', 'Mat', 'Bodyweight'
+          ]; %>
+          <% let selectedEquip = exercise.equipment || []; %>
+          <% equipment.forEach(eq => {
+            const value = eq.toLowerCase().replace(/ /g, '_').replace(/[()]/g, '');
+          %>
+            <label>
+              <input type="checkbox" name="equipment" value="<%= value %>" <%= selectedEquip.includes(value) ? 'checked' : '' %>> <%= eq %>
+            </label>
+          <% }); %>
+        </div>
+      </fieldset>
 
-    <fieldset>
-      <legend>Position</legend>
-      <div class="checkbox-group">
-        <% let selectedPos = exercise.position || []; %>
-        <% ['standing', 'seated', 'laying', 'bench'].forEach(pos => { %>
-          <label>
-            <input type="checkbox" name="position" value="<%= pos %>" <%= selectedPos.includes(pos) ? 'checked' : '' %>> <%= pos.charAt(0).toUpperCase() + pos.slice(1) %>
-          </label>
-        <% }); %>
-      </div>
-    </fieldset>
+      <fieldset>
+        <legend>Muscle Groups</legend>
+        <div class="checkbox-group">
+          <% const groups = [
+            'Abductors', 'Abs', 'Adductors', 'Biceps', 'Calves', 'Chest', 'Forearms',
+            'Glutes', 'Hamstring', 'Hip Flexors', 'Lats', 'Lower Back',
+            'Obliques', 'Quads', 'Shoulders', 'Traps', 'Triceps', 'Upper Back'
+          ]; %>
+          <% let selectedMuscles = exercise.muscle_group || []; %>
+          <% groups.forEach(group => {
+            const value = group.toLowerCase().replace(/ /g, '_');
+          %>
+            <label>
+              <input type="checkbox" name="muscle_group" value="<%= value %>" <%= selectedMuscles.includes(value) ? 'checked' : '' %>> <%= group %>
+            </label>
+          <% }); %>
+        </div>
+      </fieldset>
 
-    <fieldset>
-      <legend>Muscle Groups</legend>
-      <div class="checkbox-group">
-        <% const groups = [
-          'Abductors', 'Abs', 'Adductors', 'Biceps', 'Calves', 'Chest', 'Forearms',
-          'Glutes', 'Hamstring', 'Hip Flexors', 'Lats', 'Lower Back',
-          'Obliques', 'Quads', 'Shoulders', 'Traps', 'Triceps', 'Upper Back'
-        ]; %>
-        <% let selectedMuscles = exercise.muscle_group || []; %>
-        <% groups.forEach(group => {
-          const value = group.toLowerCase().replace(/ /g, '_');
-        %>
-          <label>
-            <input type="checkbox" name="muscle_group" value="<%= value %>" <%= selectedMuscles.includes(value) ? 'checked' : '' %>> <%= group %>
-          </label>
-        <% }); %>
-      </div>
-    </fieldset>    
+      <button type="submit">💾 Save Changes</button>
+    </form>
 
-    <button type="submit">Save Changes</button>
-  </form>
-
-  <div style="text-align: center; margin-top: 30px;">
-  <a href="/exercises" style="
-    display: inline-block;
-    padding: 12px 24px;
-    background-color: #28a745;
-    color: white;
-    text-decoration: none;
-    font-weight: bold;
-    border-radius: 6px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    transition: background-color 0.2s ease;
-  " onmouseover="this.style.backgroundColor='#218838'" onmouseout="this.style.backgroundColor='#28a745'">
-    ⬅️ Back to Exercises
-  </a>
-</div>
+    <a href="/exercises" class="back-link">⬅️ Back to Exercises</a>
+  </div>
 </body>
 </html>
