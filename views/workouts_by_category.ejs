@@ -103,10 +103,10 @@
             <a href="/workouts/<%= w.id %>"><strong><%= w.name %></strong></a>
           </td>
           <td><%= format(w.category) %></td>
-          <td><%= JSON.parse(w.equipment || '[]').map(format).join(', ') %></td>
-          <td><%= JSON.parse(w.muscle_group || '[]').map(format).join(', ') %></td>
-          <td><%= JSON.parse(w.exercise_type || '[]').map(format).join(', ') %></td>
-          <td><%= JSON.parse(w.position || '[]').map(format).join(', ') %></td>
+          <td><%= (w.equipment || []).map(format).join(', ') %></td>
+          <td><%= (w.muscle_group || []).map(format).join(', ') %></td>
+          <td><%= (w.exercise_type || []).map(format).join(', ') %></td>
+          <td><%= (w.position || []).map(format).join(', ') %></td>                 
           <td class="action-buttons">
             <a href="/workouts/<%= w.id %>/edit">✏️</a>
             <form action="/workouts/<%= w.id %>?_method=DELETE" method="POST" onsubmit="return confirm('Are you sure?')">

@@ -477,6 +477,18 @@ app.post('/workouts', (req, res) => {
   });
 });
 
+// Elimina workout
+app.delete('/workouts/:id', (req, res) => {
+  const id = req.params.id;
+  db.run('DELETE FROM workouts WHERE id = $1', [id], (err) => {
+    if (err) {
+      console.error("Workout delete error:", err);
+      return res.status(500).send('Errore nella cancellazione del workout: ' + err.message);
+    }
+    res.redirect('/workouts');
+  });
+});
+
 // FIXED: Workouts by category
 app.get('/workouts/category/:slug', (req, res) => {
   const { slug } = req.params;
@@ -596,6 +608,70 @@ app.get('/workouts/:id', (req, res) => {
     });
   });
 });
+
+// Edit Workout
+app.get('/workouts/:id/edit', (req, res) => {
+  const id = req.params.id;
+
+  db.get('SELECT * FROM workouts WHERE id = $1', [id], (err, workout) => {
+    if (err) {
+      console.error("Error fetching workout for edit:", err);
+      return res.status(500).send('Errore nel recupero workout: ' + err.message);
+    }
+
+    if (!workout) {
+      return res.status(404).send('Workout non trovato.');
+    }
+
+    // Parse JSON fields safely if needed
+    const safeParse = (data) => {
+      if (Array.isArray(data)) return data;
+      try {
+        return JSON.parse(data);
+      } catch {
+        return [];
+      }
+    };
+
+    workout.equipment = safeParse(workout.equipment);
+    workout.exercise_type = safeParse(workout.exercise_type);
+    workout.position = safeParse(workout.position);
+    workout.muscle_group = safeParse(workout.muscle_group);
+
+    res.render('edit_workout', { workout });
+  });
+});
+
+// Update Workout
+app.put('/workouts/:id', (req, res) => {
+  const id = req.params.id;
+  const { name, category, equipment, muscle_group, exercise_type, position } = req.body;
+
+  const query = `
+    UPDATE workouts 
+    SET name = $1, category = $2, equipment = $3, muscle_group = $4, exercise_type = $5, position = $6
+    WHERE id = $7
+  `;
+
+  const params = [
+    name,
+    category,
+    JSON.stringify([].concat(equipment || [])),
+    JSON.stringify([].concat(muscle_group || [])),
+    JSON.stringify([].concat(exercise_type || [])),
+    JSON.stringify([].concat(position || [])),
+    id
+  ];
+
+  db.run(query, params, (err) => {
+    if (err) {
+      console.error("Workout update error:", err);
+      return res.status(500).send('Errore nella modifica del workout: ' + err.message);
+    }
+    res.redirect('/workouts/category/' + category);
+  });
+});
+
 
 // AVVIO SERVER
 const PORT = process.env.PORT || 3000;
