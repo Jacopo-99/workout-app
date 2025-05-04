@@ -100,22 +100,8 @@
   <div class="edit-container">
     <h1>Edit Exercise</h1>
 
-    <form action="/workouts/<%= workout.id %>?_method=PUT" method="POST">
-      <label>Workout Name:
-        <input type="text" name="name" value="<%= workout.name %>" required>
-      </label>
-    
-      <label>Category:
-        <select name="category" required>
-          <option value="">-- Select Category --</option>
-          <option value="full_body" <%= workout.category === 'full_body' ? 'selected' : '' %>>Full Body</option>
-          <option value="upper_body" <%= workout.category === 'upper_body' ? 'selected' : '' %>>Upper Body</option>
-          <option value="lower_body" <%= workout.category === 'lower_body' ? 'selected' : '' %>>Lower Body</option>
-          <option value="abs" <%= workout.category === 'abs' ? 'selected' : '' %>>Abs</option>
-          <option value="yoga" <%= workout.category === 'yoga' ? 'selected' : '' %>>Yoga</option>
-        </select>
-      </label>
-    
+    <form action="/exercises/<%= exercise.id %>?_method=PUT" method="POST">
+          
       <label>Name:
         <input type="text" name="title" value="<%= exercise.title %>" required>
       </label>
