@@ -49,10 +49,22 @@
   <h1><%= workout.name %></h1>
 
   <% function formatList(arr) {
-    return JSON.parse(arr || '[]')
-      .map(e => e.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()))
-      .join(', ');
-  } %>
+    if (Array.isArray(arr)) {
+      return arr.map(e => e.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())).join(', ');
+    }
+    if (typeof arr === 'string') {
+      try {
+        const parsed = JSON.parse(arr);
+        if (Array.isArray(parsed)) {
+          return parsed.map(e => e.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())).join(', ');
+        }
+        return arr.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      } catch (e) {
+        return arr.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      }
+    }
+    return '';
+  } %>  
 
   <table>
     <thead>
@@ -69,7 +81,7 @@
     <tbody>
       <% exercises.forEach(ex => { %>
         <tr>
-          <td><%= ex.name %></td>
+          <td><a href="/exercises/<%= ex.id %>"><%= ex.title %></a></td>
           <td><%= formatList(ex.equipment) %></td>
           <td><%= formatList(ex.muscle_group) %></td>
           <td><%= formatList(ex.exercise_type) %></td>

@@ -101,7 +101,15 @@ app.get('/exercises/search', (req, res) => {
     }
 
     if (!rows || rows.length === 0) {
-      return res.render('search_results', { exercises: [] });
+      // Se non ci sono esercizi, carico comunque i workouts
+      db.all('SELECT * FROM workouts', [], (err2, workouts) => {
+        if (err2) {
+          console.error("Workouts fetch error:", err2);
+          return res.render('search_results', { exercises: [], workouts: [] });
+        }
+        res.render('search_results', { exercises: [], workouts });
+      });
+      return;
     }
 
     const exercises = rows.map(ex => {
@@ -109,9 +117,17 @@ app.get('/exercises/search', (req, res) => {
       return { ...ex, thumbnail: images[0] || null };
     });
 
-    res.render('search_results', { exercises });
+    // Carico anche i workouts
+    db.all('SELECT * FROM workouts', [], (err2, workouts) => {
+      if (err2) {
+        console.error("Workouts fetch error:", err2);
+        return res.render('search_results', { exercises, workouts: [] });
+      }
+      res.render('search_results', { exercises, workouts });
+    });
   });
 });
+
 
 // Fixed exercise save route for PostgreSQL ARRAY type
 
@@ -608,6 +624,26 @@ app.get('/workouts/:id', (req, res) => {
     });
   });
 });
+
+// Add exercise to a workout
+app.post('/workouts/add-exercise', (req, res) => {
+  const { workout_id, exercise_id } = req.body;
+
+  const query = `
+    INSERT INTO workout_exercises (workout_id, exercise_id)
+    VALUES ($1, $2)
+    ON CONFLICT (workout_id, exercise_id) DO NOTHING
+  `;
+
+  db.run(query, [workout_id, exercise_id], (err) => {
+    if (err) {
+      console.error("Error adding exercise to workout:", err);
+      return res.status(500).send('Errore nell\'aggiunta esercizio al workout: ' + err.message);
+    }
+    res.redirect('/workouts/' + workout_id);
+  });
+});
+
 
 // Edit Workout
 app.get('/workouts/:id/edit', (req, res) => {

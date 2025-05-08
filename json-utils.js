@@ -1,27 +1,19 @@
-/**
- * Safely parses a JSON string
- * @param {string|Array} value - The value to parse
- * @param {Array|Object} defaultValue - Default value if parsing fails
- * @returns {Array|Object} Parsed value or default
- */
-function safeJSONParse(value, defaultValue = []) {
-    // If null or undefined, return default
-    if (value == null) return defaultValue;
-    
-    // If already an array or object, return as is
-    if (Array.isArray(value) || (typeof value === 'object' && value !== null)) {
-      return value;
+function safeJSONParse(input, fallback) {
+  if (Array.isArray(input)) return input;
+  if (typeof input !== 'string') return fallback;
+  try {
+    const parsed = JSON.parse(input);
+    if (Array.isArray(parsed)) {
+      return parsed;
+    } else if (typeof parsed === 'string') {
+      return [parsed];
+    } else {
+      return fallback;
     }
-    
-    // Try to parse the string
-    try {
-      return JSON.parse(value);
-    } catch (e) {
-      console.error('JSON Parse error:', e);
-      return defaultValue;
-    }
+  } catch (e) {
+    // se è una stringa semplice (es: "bodyweight"), wrappala in array
+    return [input];
   }
-  
-  module.exports = {
-    safeJSONParse
-  };
+}
+
+module.exports = { safeJSONParse };

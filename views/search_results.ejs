@@ -18,10 +18,11 @@
       border-radius: 8px;
       overflow: hidden;
       text-align: center;
-      text-decoration: none;
       color: inherit;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       transition: transform 0.2s;
+      display: flex;
+      flex-direction: column;
     }
 
     .exercise-card:hover {
@@ -34,25 +35,74 @@
       object-fit: cover;
     }
 
+    .exercise-content {
+      padding: 10px;
+      flex-grow: 1;
+    }
+
     .exercise-card h3 {
       font-size: 1rem;
-      margin: 10px 0;
-      padding: 0 10px;
+      margin: 0 0 10px 0;
+      padding: 0;
     }
 
+    .add-form {
+      padding: 10px;
+      background-color: #f8f9fa;
+      border-top: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .add-form select {
+      font-size: 0.8rem;
+      padding: 4px;
+      border-radius: 4px;
+      border: 1px solid #ced4da;
+      flex-grow: 1;
+      margin-right: 5px;
+    }
+
+    .add-form button {
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      width: 30px;
+      height: 30px;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    
     .add-btn {
       display: inline-block;
+      padding: 8px 16px;
       background-color: #28a745;
       color: white;
-      padding: 10px 20px;
-      font-size: 1rem;
-      border-radius: 6px;
       text-decoration: none;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      margin-bottom: 20px;
+      font-weight: bold;
+      border-radius: 6px;
+      margin: 15px 0;
     }
-
-    .add-btn:hover {
+    
+    .back-btn {
+      display: inline-block;
+      padding: 12px 24px;
+      background-color: #28a745;
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      border-radius: 6px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      margin-top: 30px;
+    }
+    
+    .back-btn:hover {
       background-color: #218838;
     }
   </style>
@@ -66,30 +116,34 @@
 
   <div class="exercise-grid">
     <% exercises.forEach(exercise => { %>
-      <a class="exercise-card" href="/exercises/<%= exercise.id %>">
-        <h3><%= exercise.title %></h3>
-        <% if (exercise.thumbnail) { %>
-          <img src="<%= exercise.thumbnail %>" alt="<%= exercise.name %>">
-        <% } else { %>
-          <img src="/images/placeholder.jpg" alt="No Image">
-        <% } %>
-      </a>      
+      <div class="exercise-card">
+        <a href="/exercises/<%= exercise.id %>" style="text-decoration: none; color: inherit;">
+          <div class="exercise-content">
+            <h3><%= exercise.title %></h3>
+            <% if (exercise.thumbnail) { %>
+              <img src="<%= exercise.thumbnail %>" alt="<%= exercise.name %>">
+            <% } else { %>
+              <img src="/images/placeholder.jpg" alt="No Image">
+            <% } %>
+          </div>
+        </a>
+        <form class="add-form" action="/workouts/add-exercise" method="POST">
+          <input type="hidden" name="exercise_id" value="<%= exercise.id %>">
+          <select name="workout_id" required>
+            <% workouts.forEach(workout => { %>
+              <option value="<%= workout.id %>"><%= workout.name %></option>
+            <% }) %>
+          </select>
+          <button type="submit">+</button>
+        </form>
+      </div>
     <% }) %>
   </div>
 
-  <div style="text-align: center; margin-top: 30px;">
-    <a href="/exercises" style="
-      display: inline-block;
-      padding: 12px 24px;
-      background-color: #28a745;
-      color: white;
-      text-decoration: none;
-      font-weight: bold;
-      border-radius: 6px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-      transition: background-color 0.2s ease;
-    " onmouseover="this.style.backgroundColor='#218838'" onmouseout="this.style.backgroundColor='#28a745'">
+  <div style="text-align: center;">
+    <a href="/exercises" class="back-btn">
       ⬅️ Back to Exercise
     </a>
+  </div>
 </body>
 </html>
