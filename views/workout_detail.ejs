@@ -146,6 +146,10 @@
       background-color: #28a745;
       color: white;
     }
+
+    .breath-container .type-label {
+     border: 1px solid #ced4da;
+    }
     
     .rest-row {
       background-color: #e2e3e5 !important;
@@ -238,9 +242,7 @@
     return '';
   } %>  
 
-<!-- The complete form element - add this back to your workout_detail.ejs -->
 <form id="workout-form" action="/workouts/<%= workout.id %>/update-sequence?_method=PUT" method="POST" enctype="application/x-www-form-urlencoded">
-  <!-- Table and other form elements go here -->
   <table id="workout-table">
     <thead>
       <tr>
@@ -302,30 +304,43 @@
                   if (ex.minutes > 0 || ex.seconds > 0) {
                     isTimeType = true;
                   }
+                  const isBreath = !!ex.breath_type;
                 %>
                 <label class="type-label <%= !isTimeType ? 'active' : '' %>">
-                  <input type="radio" name="exercise_type_<%= index %>" value="reps" <%= !isTimeType ? 'checked' : '' %> style="display:none;">
+                  <input type="radio" name="exercise_type_<%= index %>" value="reps" <%= !isTimeType ? 'checked' : '' %> class="type-radio">
                   Reps
                 </label>
                 <label class="type-label <%= isTimeType ? 'active' : '' %>">
-                  <input type="radio" name="exercise_type_<%= index %>" value="time" <%= isTimeType ? 'checked' : '' %> style="display:none;">
+                  <input type="radio" name="exercise_type_<%= index %>" value="time" <%= isTimeType ? 'checked' : '' %> class="type-radio">
                   Time
                 </label>
+                  <label class="type-label <%= ex.breath_type ? 'active' : '' %>">
+                  <input type="radio" name="exercise_type_<%= index %>" value="breath" <%= ex.breath_type ? 'checked' : '' %> class="type-radio">
+                  Breath
+                </label>
               </div>
-              <input type="hidden" name="exercise_types[]" value="<%= isTimeType ? 'time' : 'reps' %>">
+              <input type="hidden" name="exercise_types[]" class="exercise-type-hidden" value="<%= ex.breath_type ? 'breath' : (isTimeType ? 'time' : 'reps') %>">
             </td>
             <td>
               <div class="sets-reps">
-                <input type="number" name="sets[]" min="1" value="<%= ex.sets || 3 %>" placeholder="Sets">
-                <span class="separator">×</span>
-                <div class="reps-container" style="<%= isTimeType ? 'display: none;' : '' %>">
-                  <input type="number" name="reps[]" min="1" value="<%= ex.reps || 10 %>" placeholder="Reps" class="reps-input">
+                <input type="number" name="sets[]" min="1" value="<%= ex.sets || 3 %>" placeholder="Sets" style="<%= isBreath ? 'display: none;' : '' %>">
+                <span class="separator" style="<%= isBreath ? 'display: none;' : '' %>">×</span>
+                <div class="reps-container" style="<%= (isTimeType || isBreath) ? 'display: none;' : '' %>">
+                  <input type="number" name="reps[]" min="1" value="<%= isBreath ? 0 : (ex.reps || 10) %>" placeholder="Reps" class="reps-input">
                 </div>
-                <div class="time-container" style="<%= !isTimeType ? 'display: none;' : '' %>">
+                <div class="time-container" style="<%= (!isTimeType || isBreath) ? 'display: none;' : '' %>">
                   <input type="number" name="minutes[]" min="0" value="<%= ex.minutes || 0 %>" placeholder="Min" class="time-input">
                   <span>min</span>
                   <input type="number" name="seconds[]" min="0" value="<%= ex.seconds || 30 %>" placeholder="Sec" class="time-input">
                   <span>sec</span>
+                </div>
+                <div class="breath-container" style="<%= isBreath ? 'display: flex;' : 'display: none;' %>; gap: 10px;">
+                  <label class="type-label <%= ex.breath_type === 'inhale' ? 'active' : '' %>">
+                    <input type="radio" name="breath_type[]" value="inhale" <%= ex.breath_type === 'inhale' ? 'checked' : '' %>> Inhale
+                  </label>
+                  <label class="type-label <%= ex.breath_type === 'exhale' ? 'active' : '' %>">
+                    <input type="radio" name="breath_type[]" value="exhale" <%= ex.breath_type === 'exhale' ? 'checked' : '' %>> Exhale
+                  </label>
                 </div>
               </div>
             </td>
@@ -342,6 +357,7 @@
       <% }) %>
     </tbody>
   </table>
+
 
   <button type="submit" class="save-button">Save Workout</button>
 </form>
@@ -414,7 +430,7 @@
         newRow.dataset.index = currentIndex;
         
         // Update name attributes for the new row
-        const typeRadios = newRow.querySelectorAll('input[type="radio"]');
+        const typeRadios = newRow.querySelectorAll('.type-radio');
         typeRadios.forEach(radio => {
           radio.name = `exercise_type_${currentIndex}`;
         });
@@ -479,9 +495,12 @@
           } else {
             // Exercise
             const sets = parseInt(row.querySelector('input[name="sets[]"]').value) || 0;
-            const typeInputs = row.querySelectorAll('input[type="radio"]');
+            const typeInputs = row.querySelectorAll('.type-radio');
             let isTimeType = false;
             
+            // Breath
+            const breathContainer = row.querySelector('.breath-container');
+
             typeInputs.forEach(input => {
               if (input.value === 'time' && input.checked) {
                 isTimeType = true;
@@ -541,47 +560,64 @@
           // Add new click handler
           label.addEventListener('click', typeClickHandler);
         });
+
+        // Gestione stile attivo per Inhale/Exhale
+        const breathRadios = row.querySelectorAll('.breath-container input[type="radio"]');
+        const breathLabels = row.querySelectorAll('.breath-container .type-label');
+        breathRadios.forEach(radio => {
+          radio.addEventListener('change', function () {
+            breathLabels.forEach(l => l.classList.remove('active'));
+            this.parentElement.classList.add('active');
+          });
+        });
         
         // Separate function so we can remove and re-add it
-        function typeClickHandler() {
-          const radio = this.querySelector('input[type="radio"]');
+          function typeClickHandler() {
+          const radio = this.querySelector('.type-radio');
           if (radio) {
-            // Actually check the radio button
             radio.checked = true;
-            
-            // Update hidden input value
-            const hiddenInput = row.querySelector('input[name="exercise_types[]"]');
-            if (hiddenInput) {
-              hiddenInput.value = radio.value;
-            }
-            
-            // Update UI
-            typeLabels.forEach(l => l.classList.remove('active'));
-            this.classList.add('active');
-            
-            // Show/hide appropriate input based on type
+
+            const hiddenInput = row.querySelector('.exercise-type-hidden');
+            if (hiddenInput) hiddenInput.value = radio.value;
+
             const repsContainer = row.querySelector('.reps-container');
             const timeContainer = row.querySelector('.time-container');
+            const breathContainer = row.querySelector('.breath-container');
+            const setsInput = row.querySelector('input[name="sets[]"]');
             const separator = row.querySelector('.separator');
-            
+
             if (radio.value === 'time') {
-              if (repsContainer) repsContainer.style.display = 'none';
-              if (timeContainer) timeContainer.style.display = 'flex';
-              if (separator) separator.textContent = '×';
-            } else {
-              if (repsContainer) repsContainer.style.display = 'flex';
-              if (timeContainer) timeContainer.style.display = 'none';
-              if (separator) separator.textContent = '×';
+              repsContainer.style.display = 'none';
+              timeContainer.style.display = 'flex';
+              breathContainer.style.display = 'none';
+              if (setsInput) setsInput.style.display = 'none';
+              if (separator) separator.style.display = 'none';
+
+            } else if (radio.value === 'reps') {
+              repsContainer.style.display = 'flex';
+              timeContainer.style.display = 'none';
+              breathContainer.style.display = 'none';
+              if (setsInput) setsInput.style.display = '';
+              if (separator) separator.style.display = '';
+
+            } else if (radio.value === 'breath') {
+              repsContainer.style.display = 'none';
+              timeContainer.style.display = 'none';
+              breathContainer.style.display = 'flex';
+              if (setsInput) setsInput.style.display = 'none';
+              if (separator) separator.style.display = 'none';
             }
-            
+
             calculateTotalDuration();
           }
         }
+
         
         // Recalculate when sets or reps change
         const countInputs = row.querySelectorAll('input[type="number"]');
         countInputs.forEach(input => {
           input.addEventListener('change', calculateTotalDuration);
+          input.addEventListener('input', calculateTotalDuration);
         });
       }
       
@@ -596,6 +632,7 @@
         const timeInputs = row.querySelectorAll('input[type="number"]');
         timeInputs.forEach(input => {
           input.addEventListener('change', calculateTotalDuration);
+          input.addEventListener('input', calculateTotalDuration);
         });
       }
       
@@ -606,7 +643,7 @@
         // Also manually set up the existing type selectors
         const typeLabels = row.querySelectorAll('.type-label');
         typeLabels.forEach(label => {
-          const radio = label.querySelector('input[type="radio"]');
+          const radio = label.querySelector('.type-radio');
           if (radio && radio.checked) {
             label.classList.add('active');
             
@@ -636,12 +673,13 @@
       // Initial duration calculation
       calculateTotalDuration();
       
-      // Ensure the form submits correctly
+      // Ensure the form submits correctly by updating all hidden fields
       document.getElementById('workout-form').addEventListener('submit', function(e) {
         console.log('Form is submitting...');
-        // Make sure all exercise_types hidden inputs are correctly set
+        
+        // Make sure all exercise_types hidden inputs are correctly set based on radio button state
         document.querySelectorAll('.exercise-row').forEach(row => {
-          const typeRadios = row.querySelectorAll('input[type="radio"]');
+          const typeRadios = row.querySelectorAll('.type-radio');
           let selectedType = 'reps'; // Default
           
           typeRadios.forEach(radio => {
@@ -650,7 +688,7 @@
             }
           });
           
-          const hiddenTypeInput = row.querySelector('input[name="exercise_types[]"]');
+          const hiddenTypeInput = row.querySelector('.exercise-type-hidden');
           if (hiddenTypeInput) {
             hiddenTypeInput.value = selectedType;
           }

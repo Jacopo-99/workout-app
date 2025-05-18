@@ -720,10 +720,10 @@ app.put('/workouts/:id', (req, res) => {
   });
 });
 
-//Udate-sequence route in app.js
+// Update-sequence route in app.js
 app.put('/workouts/:id/update-sequence', (req, res) => {
   const id = req.params.id;
-  const { exercise_ids, sets, reps, minutes, seconds, item_types } = req.body;
+  const { exercise_ids, sets, reps, minutes, seconds, item_types, exercise_types, breath_type } = req.body;
 
   console.log('Received update-sequence with data:', {
     workout_id: id,
@@ -732,7 +732,9 @@ app.put('/workouts/:id/update-sequence', (req, res) => {
     sets,
     reps,
     minutes,
-    seconds
+    seconds,
+    exercise_types,
+    breath_type
   });
 
   // First, remove all existing exercises and rest periods for this workout
@@ -754,16 +756,17 @@ app.put('/workouts/:id/update-sequence', (req, res) => {
       const sec = parseInt(seconds[index]) || 0;
       const orderIndex = index;
       const isRest = exerciseId === 'rest' || (item_types && item_types[index] === 'rest');
+      const type = exercise_types?.[index] || 'reps';
+      const breath = breath_type?.[index] || null;
 
       return new Promise((resolve, reject) => {
         if (isRest) {
-          // This is a rest period
           const totalRestSeconds = min * 60 + sec;
-          
+
           db.run(
             `INSERT INTO workout_exercises 
-              (workout_id, exercise_id, rest_time_seconds, order_index, sets, reps, minutes, seconds) 
-             VALUES ($1, NULL, $2, $3, 0, 0, $4, $5)`,
+              (workout_id, exercise_id, rest_time_seconds, order_index, sets, reps, minutes, seconds, breath_type) 
+             VALUES ($1, NULL, $2, $3, 0, 0, $4, $5, NULL)`,
             [id, totalRestSeconds, orderIndex, min, sec],
             function(err) {
               if (err) {
@@ -775,12 +778,11 @@ app.put('/workouts/:id/update-sequence', (req, res) => {
             }
           );
         } else {
-          // This is an exercise
           db.run(
             `INSERT INTO workout_exercises 
-              (workout_id, exercise_id, sets, reps, minutes, seconds, order_index, rest_time_seconds) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, NULL)`,
-            [id, exerciseId, set, rep, min, sec, orderIndex],
+              (workout_id, exercise_id, sets, reps, minutes, seconds, order_index, rest_time_seconds, breath_type)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, NULL, $8)`,
+            [id, exerciseId, set, rep, min, sec, orderIndex, type === 'breath' ? breath : null],
             function(err) {
               if (err) {
                 console.error('Exercise insert error:', err);
@@ -805,6 +807,7 @@ app.put('/workouts/:id/update-sequence', (req, res) => {
       });
   });
 });
+
 
 
 // AVVIO SERVER
