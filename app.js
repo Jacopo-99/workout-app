@@ -719,71 +719,91 @@ app.put('/workouts/:id', (req, res) => {
     res.redirect('/workouts/category/' + category);
   });
 });
- //Update workout 
- app.put('/workouts/:id/update-sequence', (req, res) => {
+
+//Udate-sequence route in app.js
+app.put('/workouts/:id/update-sequence', (req, res) => {
   const id = req.params.id;
-  const { exercise_ids, sets, reps, minutes, seconds } = req.body;
+  const { exercise_ids, sets, reps, minutes, seconds, item_types } = req.body;
 
-  const updatePromises = exercise_ids.map((exerciseId, index) => {
-    if (!exerciseId || exerciseId.trim() === '') {
-      return Promise.resolve();
-    }
-
-    const set = parseInt(sets[index]) || 0;
-    const rep = parseInt(reps[index]) || 0;
-    const min = parseInt(minutes[index]) || 0;
-    const sec = parseInt(seconds[index]) || 0;
-    const orderIndex = index;
-
-    if (exerciseId === 'rest') {
-      const totalRestSeconds = min * 60 + sec;
-
-      return new Promise((resolve, reject) => {
-        db.run(
-          `INSERT INTO workout_exercises (workout_id, exercise_id, rest_time_seconds, order_index)
-           VALUES ($1, NULL, $2, $3)
-           ON CONFLICT (workout_id, exercise_id) 
-           WHERE exercise_id IS NULL AND workout_id = $1
-           DO UPDATE SET rest_time_seconds = $2, order_index = $3`,
-          [id, totalRestSeconds, orderIndex],
-          function(err) {
-            if (err) {
-              console.error('Rest insert/update error:', err);
-              reject(err);
-            } else {
-              resolve();
-            }
-          }
-        );
-      });
-    }
-
-    return new Promise((resolve, reject) => {
-      db.run(
-        `UPDATE workout_exercises 
-         SET sets = $1, reps = $2, minutes = $3, seconds = $4, rest_time_seconds = NULL, order_index = $5
-         WHERE workout_id = $6 AND exercise_id = $7`,
-        [set, rep, min, sec, orderIndex, id, exerciseId],
-        function(err) {
-          if (err) {
-            console.error('Exercise update error:', err);
-            reject(err);
-          } else {
-            resolve();
-          }
-        }
-      );
-    });
+  console.log('Received update-sequence with data:', {
+    workout_id: id,
+    exercise_ids,
+    item_types,
+    sets,
+    reps,
+    minutes,
+    seconds
   });
 
-  Promise.all(updatePromises)
-    .then(() => {
-      res.redirect('/workouts/' + id);
-    })
-    .catch(err => {
-      console.error('Update error:', err);
-      res.status(500).send('Errore nel salvataggio sequenza');
+  // First, remove all existing exercises and rest periods for this workout
+  db.run('DELETE FROM workout_exercises WHERE workout_id = $1', [id], (deleteErr) => {
+    if (deleteErr) {
+      console.error('Error deleting existing workout items:', deleteErr);
+      return res.status(500).send('Error updating workout sequence: ' + deleteErr.message);
+    }
+
+    // Now insert all exercises and rest periods in the new order
+    const insertPromises = exercise_ids.map((exerciseId, index) => {
+      if (!exerciseId) {
+        return Promise.resolve();
+      }
+
+      const set = parseInt(sets[index]) || 0;
+      const rep = parseInt(reps[index]) || 0;
+      const min = parseInt(minutes[index]) || 0;
+      const sec = parseInt(seconds[index]) || 0;
+      const orderIndex = index;
+      const isRest = exerciseId === 'rest' || (item_types && item_types[index] === 'rest');
+
+      return new Promise((resolve, reject) => {
+        if (isRest) {
+          // This is a rest period
+          const totalRestSeconds = min * 60 + sec;
+          
+          db.run(
+            `INSERT INTO workout_exercises 
+              (workout_id, exercise_id, rest_time_seconds, order_index, sets, reps, minutes, seconds) 
+             VALUES ($1, NULL, $2, $3, 0, 0, $4, $5)`,
+            [id, totalRestSeconds, orderIndex, min, sec],
+            function(err) {
+              if (err) {
+                console.error('Rest period insert error:', err);
+                reject(err);
+              } else {
+                resolve();
+              }
+            }
+          );
+        } else {
+          // This is an exercise
+          db.run(
+            `INSERT INTO workout_exercises 
+              (workout_id, exercise_id, sets, reps, minutes, seconds, order_index, rest_time_seconds) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, NULL)`,
+            [id, exerciseId, set, rep, min, sec, orderIndex],
+            function(err) {
+              if (err) {
+                console.error('Exercise insert error:', err);
+                reject(err);
+              } else {
+                resolve();
+              }
+            }
+          );
+        }
+      });
     });
+
+    Promise.all(insertPromises)
+      .then(() => {
+        console.log(`Successfully updated workout ${id} sequence`);
+        res.redirect('/workouts/' + id);
+      })
+      .catch(err => {
+        console.error('Sequence update error:', err);
+        res.status(500).send('Error saving workout sequence: ' + err.message);
+      });
+  });
 });
 
 
