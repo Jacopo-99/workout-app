@@ -13,7 +13,39 @@
 
     h1 {
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 10px;
+    }
+
+    .workout-summary {
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 25px;
+      text-align: center;
+      border: 1px solid #e9ecef;
+    }
+
+    .workout-duration {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #28a745;
+      margin-bottom: 5px;
+    }
+
+    .workout-stats {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    
+    .workout-stat {
+      background: #e9ecef;
+      padding: 5px 12px;
+      border-radius: 15px;
+      font-size: 0.9rem;
+      display: inline-block;
     }
 
     table {
@@ -25,7 +57,7 @@
     th, td {
       border: 1px solid #ccc;
       padding: 10px;
-      vertical-align: top;
+      vertical-align: middle;
       text-align: left;
     }
 
@@ -37,16 +69,156 @@
       background-color: #f0f0f0;
     }
 
-    a.back-link {
+    .exercise-actions {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    
+    .action-btn {
+      padding: 5px 8px;
+      font-size: 0.8rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      color: white;
+    }
+    
+    .duplicate-btn {
+      background-color: #17a2b8;
+    }
+    
+    .rest-btn {
+      background-color: #6c757d;
+    }
+    
+    .remove-btn {
+      background-color: #dc3545;
+    }
+    
+    .edit-btn {
+      background-color: #ffc107;
+      color: #212529;
+    }
+    
+    .move-btn {
+      background-color: #6610f2;
+      cursor: move;
+    }
+    
+      .sets-reps {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .sets-reps input {
+      width: 60px;
+      padding: 5px;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+    }
+    
+    .time-input {
+      width: 50px !important;
+    }
+    
+    .reps-container, .time-container {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .type-selector {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .type-label {
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    
+    .type-label.active {
+      background-color: #28a745;
+      color: white;
+    }
+    
+    .rest-row {
+      background-color: #e2e3e5 !important;
+      text-align: center;
+      font-style: italic;
+    }
+
+    .save-button {
+      display: block;
+      margin: 20px auto;
+      padding: 10px 20px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    
+    .save-button:hover {
+      background-color: #218838;
+    }
+    
+    .back-btn {
       display: inline-block;
-      margin-top: 20px;
+      padding: 12px 24px;
+      background-color: #28a745;
+      color: white;
       text-decoration: none;
-      color: #333;
+      font-weight: bold;
+      border-radius: 6px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      transition: background-color 0.2s ease;
+      margin-top: 30px;
+    }
+    
+    .back-btn:hover {
+      background-color: #218838;
+    }
+    
+    /* Drag and drop styles */
+    .sortable-ghost {
+      opacity: 0.5;
+      background-color: #c8e6c9 !important;
+    }
+    
+    .sortable-chosen {
+      background-color: #e8f5e9 !important;
+    }
+    
+    tr.exercise-row, tr.rest-row {
+      transition: background-color 0.2s ease;
+    }
+    
+    tr.exercise-row:hover, tr.rest-row:hover {
+      background-color: #f5f5f5;
     }
   </style>
 </head>
 <body>
   <h1><%= workout.name %></h1>
+  
+  <div class="workout-summary">
+    <div class="workout-duration">
+      Total Duration: <span id="total-duration">0</span> minutes
+    </div>
+    <div class="workout-stats">
+      <div class="workout-stat"><%= exercises.length %> Exercises</div>
+      <% if (Array.isArray(workout.muscle_group) && workout.muscle_group.length > 0) { %>
+        <div class="workout-stat">Focus: <%= formatList(workout.muscle_group) %></div>
+      <% } %>
+    </div>
+  </div>
 
   <% function formatList(arr) {
     if (Array.isArray(arr)) {
@@ -66,48 +238,352 @@
     return '';
   } %>  
 
-  <table>
+<!-- The complete form element - add this back to your workout_detail.ejs -->
+<form id="workout-form" action="/workouts/<%= workout.id %>/update-sequence?_method=PUT" method="POST" enctype="application/x-www-form-urlencoded">
+  <!-- Table and other form elements go here -->
+  <table id="workout-table">
     <thead>
       <tr>
-        <th>Name</th>
-        <th>Equipment</th>
-        <th>Muscle Group</th>
-        <th>Type</th>
-        <th>Position</th>
-        <th>Complexity</th>
-        <th>Description</th>
+        <th style="width: 5%;">Order</th>
+        <th style="width: 25%;">Exercise</th>
+        <th style="width: 10%;">Type</th>
+        <th style="width: 10%;">Sets/Time</th>
+        <th style="width: 10%;">Equipment</th>
+        <th style="width: 10%;">Muscle Group</th>
+        <th style="width: 15%;">Actions</th>
       </tr>
     </thead>
-    <tbody>
-      <% exercises.forEach(ex => { %>
-        <tr>
+    <tbody id="exercises-tbody">
+      <% exercises.forEach((ex, index) => { %>
+        <tr class="exercise-row" data-id="<%= ex.id %>" data-index="<%= index %>">
+          <td>
+            <input type="hidden" name="exercise_ids[]" value="<%= ex.id %>">
+            <input type="hidden" name="item_types[]" value="exercise">
+            <span class="order-num"><%= index + 1 %></span>
+          </td>
           <td><a href="/exercises/<%= ex.id %>"><%= ex.title %></a></td>
+          <td>
+            <div class="type-selector">
+              <label class="type-label active">
+                <input type="radio" name="exercise_type_<%= index %>" value="reps" checked style="display:none;">
+                Reps
+              </label>
+              <label class="type-label">
+                <input type="radio" name="exercise_type_<%= index %>" value="time" style="display:none;">
+                Time
+              </label>
+            </div>
+            <input type="hidden" name="exercise_types[]" value="reps">
+          </td>
+          <td>
+            <div class="sets-reps">
+              <input type="number" name="sets[]" min="1" value="3" placeholder="Sets">
+              <span class="separator">×</span>
+              <div class="reps-container">
+                <input type="number" name="reps[]" min="1" value="10" placeholder="Reps" class="reps-input">
+              </div>
+              <div class="time-container" style="display: none;">
+                <input type="number" name="minutes[]" min="0" value="0" placeholder="Min" class="time-input">
+                <span>min</span>
+                <input type="number" name="seconds[]" min="0" value="30" placeholder="Sec" class="time-input">
+                <span>sec</span>
+              </div>
+            </div>
+          </td>
           <td><%= formatList(ex.equipment) %></td>
           <td><%= formatList(ex.muscle_group) %></td>
-          <td><%= formatList(ex.exercise_type) %></td>
-          <td><%= formatList(ex.position) %></td>
-          <td><%= ex.complexity %></td>
-          <td><%= ex.description %></td>
+          <td class="exercise-actions">
+            <button type="button" class="action-btn move-btn" title="Drag to Move">↕️</button>
+            <button type="button" class="action-btn duplicate-btn" title="Duplicate">🔄</button>
+            <button type="button" class="action-btn rest-btn" title="Add Rest After">⏱️</button>
+            <button type="button" class="action-btn remove-btn" title="Remove">❌</button>
+          </td>
         </tr>
       <% }) %>
     </tbody>
   </table>
 
+  <button type="submit" class="save-button">Save Workout</button>
+</form>
+
+  <div style="text-align: center;">
+    <a href="/workouts" class="back-btn">
+      ⬅️ Back to Workouts
+    </a>
   </div>
-    <div style="text-align: center; margin-top: 30px;">
-  <a href="/workouts" style="
-    display: inline-block;
-    padding: 12px 24px;
-    background-color: #28a745;
-    color: white;
-    text-decoration: none;
-    font-weight: bold;
-    border-radius: 6px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    transition: background-color 0.2s ease;
-  " onmouseover="this.style.backgroundColor='#218838'" onmouseout="this.style.backgroundColor='#28a745'">
-    ⬅️ Back to Workouts
-  </a>
-</div>
+
+  <!-- Include Sortable.js from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const exercisesBody = document.getElementById('exercises-tbody');
+      let currentIndex = <%= exercises.length %>;
+      
+      // Initialize Sortable for drag and drop functionality
+      const sortable = new Sortable(exercisesBody, {
+        animation: 150,
+        handle: '.move-btn',
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        onEnd: function() {
+          // Update order numbers after sorting
+          updateOrderNumbers();
+          // Recalculate duration
+          calculateTotalDuration();
+        }
+      });
+      
+      // Template for a rest row
+      function createRestRow(index) {
+  const row = document.createElement('tr');
+  row.className = 'rest-row';
+  row.dataset.index = index;
+
+  row.innerHTML = `
+    <td>
+      <input type="hidden" name="exercise_ids[]" value="rest">
+      <span class="order-num">${index + 1}</span>
+    </td>
+    <td colspan="2">Rest Period</td>
+    <td>
+      <div class="sets-reps">
+        <input type="number" name="sets[]" value="0" hidden>
+        <input type="number" name="reps[]" value="0" hidden>
+        <input type="number" name="minutes[]" min="0" value="1" placeholder="Min">
+        <span>min</span>
+        <input type="number" name="seconds[]" min="0" max="59" value="0" placeholder="Sec">
+        <span>sec</span>
+      </div>
+    </td>
+    <td colspan="2"></td>
+    <td class="exercise-actions">
+      <button type="button" class="action-btn move-btn" title="Drag to Move">↕️</button>
+      <button type="button" class="action-btn remove-btn" title="Remove">❌</button>
+    </td>
+  `;
+
+  return row;
+}
+
+      
+      // Duplicate an exercise row
+      function duplicateExercise(row) {
+        const newRow = row.cloneNode(true);
+        currentIndex++;
+        newRow.dataset.index = currentIndex;
+        
+        // Update name attributes for the new row
+        const typeRadios = newRow.querySelectorAll('input[type="radio"]');
+        typeRadios.forEach(radio => {
+          radio.name = `exercise_type_${currentIndex}`;
+        });
+        
+        // Add event listeners to the new row buttons
+        addRowEventListeners(newRow);
+        
+        // Insert after the current row
+        row.after(newRow);
+        
+        // Update order numbers
+        updateOrderNumbers();
+        calculateTotalDuration();
+      }
+      
+      // Add a rest period after an exercise
+      function addRestAfter(row) {
+        currentIndex++;
+        const restRow = createRestRow(currentIndex);
+        
+        // Add event listeners to the rest row
+        addRestRowEventListeners(restRow);
+        
+        // Insert after the current row
+        row.after(restRow);
+        
+        // Update order numbers
+        updateOrderNumbers();
+        calculateTotalDuration();
+      }
+      
+      // Remove a row
+      function removeRow(row) {
+        if (confirm('Are you sure you want to remove this item from the workout?')) {
+          row.remove();
+          updateOrderNumbers();
+          calculateTotalDuration();
+        }
+      }
+      
+      // Update order numbers for all rows
+      function updateOrderNumbers() {
+        const allRows = exercisesBody.querySelectorAll('tr');
+        allRows.forEach((row, idx) => {
+          row.querySelector('.order-num').textContent = idx + 1;
+          row.dataset.index = idx;
+        });
+      }
+      
+      // Calculate estimated workout duration
+      function calculateTotalDuration() {
+        let totalMinutes = 0;
+        
+        // Process all rows
+        const allRows = exercisesBody.querySelectorAll('tr');
+        allRows.forEach(row => {
+          if (row.classList.contains('rest-row')) {
+            // Rest period
+            const minutes = parseInt(row.querySelector('input[name="rest_minutes[]"]').value) || 0;
+            const seconds = parseInt(row.querySelector('input[name="rest_seconds[]"]').value) || 0;
+            totalMinutes += minutes + (seconds / 60);
+          } else {
+            // Exercise
+            const sets = parseInt(row.querySelector('input[name="sets[]"]').value) || 0;
+            const typeInputs = row.querySelectorAll('input[type="radio"]');
+            let isTimeType = false;
+            
+            typeInputs.forEach(input => {
+              if (input.value === 'time' && input.checked) {
+                isTimeType = true;
+              }
+            });
+            
+            if (isTimeType) {
+              // Time-based exercise
+              const minutes = parseInt(row.querySelector('input[name="minutes[]"]').value) || 0;
+              const seconds = parseInt(row.querySelector('input[name="seconds[]"]').value) || 0;
+              const timeInMinutes = minutes + (seconds / 60);
+              totalMinutes += sets * timeInMinutes;
+            } else {
+              // Rep-based exercise (estimate 45 seconds per set)
+              totalMinutes += sets * 0.75;
+            }
+            
+            // Add rest between sets (assume 30 seconds between sets)
+            if (sets > 1) {
+              totalMinutes += (sets - 1) * 0.5;
+            }
+          }
+        });
+        
+        // Update the displayed duration (round to 1 decimal)
+        document.getElementById('total-duration').textContent = totalMinutes.toFixed(1);
+      }
+      
+      // Add event listeners to all exercise rows
+      function addRowEventListeners(row) {
+        // Duplicate button
+        row.querySelector('.duplicate-btn').addEventListener('click', function() {
+          duplicateExercise(row);
+        });
+        
+        // Rest button
+        row.querySelector('.rest-btn').addEventListener('click', function() {
+          addRestAfter(row);
+        });
+        
+        // Remove button
+        row.querySelector('.remove-btn').addEventListener('click', function() {
+          removeRow(row);
+        });
+        
+        // Type selector (reps vs time)
+        const typeLabels = row.querySelectorAll('.type-label');
+        typeLabels.forEach(label => {
+          // Remove any existing listeners first to prevent duplicates
+          label.removeEventListener('click', typeClickHandler);
+          // Add new click handler
+          label.addEventListener('click', typeClickHandler);
+        });
+        
+        // Separate function so we can remove and re-add it
+        function typeClickHandler() {
+          const radio = this.querySelector('input[type="radio"]');
+          if (radio) {
+            // Actually check the radio button
+            radio.checked = true;
+            
+            // Update hidden input value
+            const hiddenInput = row.querySelector('input[name="exercise_types[]"]');
+            hiddenInput.value = radio.value;
+            
+            // Update UI
+            typeLabels.forEach(l => l.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Show/hide appropriate input based on type
+            const repsContainer = row.querySelector('.reps-container');
+            const timeContainer = row.querySelector('.time-container');
+            const separator = row.querySelector('.separator');
+            
+            if (radio.value === 'time') {
+              repsContainer.style.display = 'none';
+              timeContainer.style.display = 'flex';
+              separator.textContent = '×';
+            } else {
+              repsContainer.style.display = 'flex';
+              timeContainer.style.display = 'none';
+              separator.textContent = '×';
+            }
+            
+            calculateTotalDuration();
+          }
+        }
+        
+        // Recalculate when sets or reps change
+        const countInputs = row.querySelectorAll('input[type="number"]');
+        countInputs.forEach(input => {
+          input.addEventListener('change', calculateTotalDuration);
+        });
+      }
+      
+      // Add event listeners for rest rows
+      function addRestRowEventListeners(row) {
+        // Remove button
+        row.querySelector('.remove-btn').addEventListener('click', function() {
+          removeRow(row);
+        });
+        
+        // Recalculate when rest time changes
+        const timeInputs = row.querySelectorAll('input[type="number"]');
+        timeInputs.forEach(input => {
+          input.addEventListener('change', calculateTotalDuration);
+        });
+      }
+      
+      // Initialize event listeners for all existing rows
+      document.querySelectorAll('.exercise-row').forEach(row => {
+        addRowEventListeners(row);
+        
+        // Also manually set up the existing type selectors
+        const typeLabels = row.querySelectorAll('.type-label');
+        typeLabels.forEach(label => {
+          const radio = label.querySelector('input[type="radio"]');
+          if (radio && radio.checked) {
+            label.classList.add('active');
+            
+            // Initialize the correct display of inputs
+            if (radio.value === 'time') {
+              row.querySelector('.reps-container').style.display = 'none';
+              row.querySelector('.time-container').style.display = 'flex';
+            } else {
+              row.querySelector('.reps-container').style.display = 'flex';
+              row.querySelector('.time-container').style.display = 'none';
+            }
+          } else {
+            label.classList.remove('active');
+          }
+        });
+      });
+      
+      // Initial duration calculation
+      calculateTotalDuration();
+      
+      document.getElementById('workout-form').addEventListener('submit', function (e) {
+  console.log('Form is submitting via browser POST with _method=PUT');
+});
+
+    });
+  </script>
 </body>
 </html>

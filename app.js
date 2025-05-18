@@ -599,31 +599,43 @@ app.get('/workouts/:id', (req, res) => {
     workout.position = safeJSONParse(workout.position, []);
 
     db.all(`
-      SELECT e.* FROM exercises e
-      INNER JOIN workout_exercises we ON e.id = we.exercise_id
+      SELECT e.*, we.id AS we_id, we.rest_time_seconds 
+      FROM workout_exercises we
+      LEFT JOIN exercises e ON e.id = we.exercise_id
       WHERE we.workout_id = $1
-    `, [id], (err2, exercises) => {
+      ORDER BY we.order_index;
+    `, [id], (err2, rows) => {
       if (err2) {
         console.error("Workout exercises error:", err2);
         return res.status(500).send('Errore nel recupero esercizi: ' + err2.message);
       }
-      
-      // Process exercises
-      const processedExercises = exercises.map(ex => {
-        return {
-          ...ex,
-          muscle_group: safeJSONParse(ex.muscle_group, []),
-          exercise_type: safeJSONParse(ex.exercise_type, []),
-          position: safeJSONParse(ex.position, []),
-          equipment: safeJSONParse(ex.equipment, []),
-          images: safeJSONParse(ex.images, [])
-        };
+
+      // Process exercises + rest periods
+      const processedItems = rows.map(item => {
+        if (item.exercise_id === null) {
+          return {
+            isRest: true,
+            we_id: item.we_id,
+            rest_time_seconds: item.rest_time_seconds
+          };
+        } else {
+          return {
+            ...item,
+            isRest: false,
+            muscle_group: safeJSONParse(item.muscle_group, []),
+            exercise_type: safeJSONParse(item.exercise_type, []),
+            position: safeJSONParse(item.position, []),
+            equipment: safeJSONParse(item.equipment, []),
+            images: safeJSONParse(item.images, [])
+          };
+        }
       });
-      
-      res.render('workout_detail', { workout, exercises: processedExercises });
+
+      res.render('workout_detail', { workout, exercises: processedItems });
     });
   });
 });
+
 
 // Add exercise to a workout
 app.post('/workouts/add-exercise', (req, res) => {
@@ -706,6 +718,72 @@ app.put('/workouts/:id', (req, res) => {
     }
     res.redirect('/workouts/category/' + category);
   });
+});
+ //Update workout 
+ app.put('/workouts/:id/update-sequence', (req, res) => {
+  const id = req.params.id;
+  const { exercise_ids, sets, reps, minutes, seconds } = req.body;
+
+  const updatePromises = exercise_ids.map((exerciseId, index) => {
+    if (!exerciseId || exerciseId.trim() === '') {
+      return Promise.resolve();
+    }
+
+    const set = parseInt(sets[index]) || 0;
+    const rep = parseInt(reps[index]) || 0;
+    const min = parseInt(minutes[index]) || 0;
+    const sec = parseInt(seconds[index]) || 0;
+    const orderIndex = index;
+
+    if (exerciseId === 'rest') {
+      const totalRestSeconds = min * 60 + sec;
+
+      return new Promise((resolve, reject) => {
+        db.run(
+          `INSERT INTO workout_exercises (workout_id, exercise_id, rest_time_seconds, order_index)
+           VALUES ($1, NULL, $2, $3)
+           ON CONFLICT (workout_id, exercise_id) 
+           WHERE exercise_id IS NULL AND workout_id = $1
+           DO UPDATE SET rest_time_seconds = $2, order_index = $3`,
+          [id, totalRestSeconds, orderIndex],
+          function(err) {
+            if (err) {
+              console.error('Rest insert/update error:', err);
+              reject(err);
+            } else {
+              resolve();
+            }
+          }
+        );
+      });
+    }
+
+    return new Promise((resolve, reject) => {
+      db.run(
+        `UPDATE workout_exercises 
+         SET sets = $1, reps = $2, minutes = $3, seconds = $4, rest_time_seconds = NULL, order_index = $5
+         WHERE workout_id = $6 AND exercise_id = $7`,
+        [set, rep, min, sec, orderIndex, id, exerciseId],
+        function(err) {
+          if (err) {
+            console.error('Exercise update error:', err);
+            reject(err);
+          } else {
+            resolve();
+          }
+        }
+      );
+    });
+  });
+
+  Promise.all(updatePromises)
+    .then(() => {
+      res.redirect('/workouts/' + id);
+    })
+    .catch(err => {
+      console.error('Update error:', err);
+      res.status(500).send('Errore nel salvataggio sequenza');
+    });
 });
 
 
